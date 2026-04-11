@@ -1,2 +1,2 @@
-# Anomix poject
+# Anomix project
 ..
