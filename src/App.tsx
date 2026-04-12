@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import './index.css';
 import { Navigation } from './components/Navigation';
-import { Hero } from './components/Hero';
-import { DataGrid } from './components/DataGrid';
-import { LiveTicker } from './components/LiveTicker';
+import ObservatoriumGlobe from './components/ObservatoriumGlobe';
 import { SystemBoot } from './components/SystemBoot';
 import { SystemLog } from './components/SystemLog';
 import { useMagneticCursor } from './hooks/useMagneticCursor';
@@ -26,14 +24,12 @@ export default function App() {
       {/* Navigation */}
       <Navigation />
 
-      {/* Main content */}
+      {/* Main content: Space 01: The Observatorium */}
       <main>
-        <Hero />
-        <DataGrid />
+        <ObservatoriumGlobe />
       </main>
 
-      {/* Fixed live ticker and logger */}
-      <LiveTicker />
+      {/* System logs overlay */}
       <SystemLog />
     </>
   );

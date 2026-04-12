@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Phase 4 Baseline: Open read/write for the observatorium collection in Test Mode
+    match /observatorium/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Default: Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
