@@ -7,11 +7,13 @@
  * ZERO external data fetching — fully hardcoded mock dataset (15 entries).
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Globe, Clock, Tag, Search, Filter, Download, ChevronDown,
   ArrowUpRight, ArrowDownRight, Minus, Zap, Activity, TrendingUp
 } from 'lucide-react';
+import ParticleSwarmOverlay from '../components/ParticleSwarm';
+import { useMagneticCursor } from '../hooks/useMagneticCursor';
 
 // ─── Mock Data (15 Hardcoded Trend Entries) ─────────────────────────────────
 
@@ -246,31 +248,27 @@ function FilterDropdown({ icon, label, options }: { icon: React.ReactNode; label
 // ─── Table Row Component ──────────────────────────────────────────────────────
 
 function TrendRow({ entry, index }: { entry: TrendEntry; index: number }) {
-  const [hovered, setHovered] = useState(false);
-  const rowRef = useRef<HTMLTableRowElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), index * 55);
+    // Staggered entrances
+    const timer = setTimeout(() => setVisible(true), index * 60 + 100);
     return () => clearTimeout(timer);
   }, [index]);
 
   return (
-    <tr
+    <div
       ref={rowRef}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className={`glass-card grid grid-cols-[60px_minmax(260px,1fr)_120px_130px_120px_minmax(240px,1.5fr)_120px] gap-2 items-center px-4 py-3 ${visible ? 'glitch-enter' : 'opacity-0 translate-y-4'}`}
       style={{
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
-        background: hovered ? 'rgba(255,255,255,0.04)' : 'transparent',
-        transition: 'all 0.25s var(--spring-snappy, ease)',
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0px)' : 'translateY(12px)',
+        transition: 'opacity 0.4s ease, transform 0.4s var(--spring-snappy), background 0.3s ease, border-color 0.3s ease',
         cursor: 'default',
+        transformStyle: 'preserve-3d',
       }}
     >
       {/* RANK */}
-      <td className="py-4 pl-6 pr-3 w-12">
+      <div className="pl-2">
         <span style={{
           fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums',
           fontSize: '12px', fontWeight: 700,
@@ -278,10 +276,10 @@ function TrendRow({ entry, index }: { entry: TrendEntry; index: number }) {
         }}>
           {String(entry.rank).padStart(2, '0')}
         </span>
-      </td>
+      </div>
 
       {/* QUERY + SOURCE */}
-      <td className="py-4 pr-6" style={{ minWidth: '260px' }}>
+      <div>
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-white/90 leading-tight hover:text-cyan-400 transition-colors cursor-pointer">
@@ -289,30 +287,30 @@ function TrendRow({ entry, index }: { entry: TrendEntry; index: number }) {
             </span>
             <SourceBadge source={entry.source} />
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
-            style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'JetBrains Mono', monospace" }}>
+          <span className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded w-max"
+            style={{ border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.4)', fontFamily: "'JetBrains Mono', monospace" }}>
             {entry.category}
           </span>
         </div>
-      </td>
+      </div>
 
       {/* SEARCH VOLUME */}
-      <td className="py-4 pr-8" style={{ minWidth: '100px' }}>
+      <div>
         <div className="flex flex-col gap-0.5">
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>
             {entry.volume}
           </span>
           <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'JetBrains Mono', monospace" }}>searches</span>
         </div>
-      </td>
+      </div>
 
       {/* VELOCITY */}
-      <td className="py-4 pr-8" style={{ minWidth: '110px' }}>
+      <div>
         <VelocityBadge value={entry.velocity} dir={entry.velocityDir} />
-      </td>
+      </div>
 
       {/* STARTED */}
-      <td className="py-4 pr-8" style={{ minWidth: '100px' }}>
+      <div>
         <div className="flex flex-col gap-0.5">
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
             {entry.started}
@@ -322,10 +320,10 @@ function TrendRow({ entry, index }: { entry: TrendEntry; index: number }) {
             <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Active</span>
           </div>
         </div>
-      </td>
+      </div>
 
       {/* TREND BREAKDOWN */}
-      <td className="py-4 pr-6" style={{ minWidth: '240px' }}>
+      <div>
         <div className="flex flex-col gap-1">
           {entry.breakdown.map((item, i) => (
             <span key={i} className="text-xs transition-colors"
@@ -334,13 +332,13 @@ function TrendRow({ entry, index }: { entry: TrendEntry; index: number }) {
             </span>
           ))}
         </div>
-      </td>
+      </div>
 
       {/* SPARKLINE */}
-      <td className="py-4 pr-6" style={{ minWidth: '100px' }}>
+      <div>
         <Sparkline points={entry.sparklinePoints} type={entry.sparklineType} />
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
 
@@ -349,6 +347,8 @@ function TrendRow({ entry, index }: { entry: TrendEntry; index: number }) {
 const CLOCK_TICK = 1000;
 
 export function AdvancedAnalytics() {
+  useMagneticCursor();
+  
   const [clock, setClock] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'relevance' | 'volume' | 'velocity'>('relevance');
@@ -381,8 +381,9 @@ export function AdvancedAnalytics() {
     d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-void, #030303)', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      
+    <div className="min-h-screen relative overflow-hidden" style={{ background: 'var(--color-void, #030303)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <ParticleSwarmOverlay />
+
       {/* ── Page Header ─────────────────────────────────────────────────── */}
       <div style={{
         background: 'rgba(3,3,5,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -471,64 +472,57 @@ export function AdvancedAnalytics() {
       </div>
 
       {/* ── Intelligence Grid ────────────────────────────────────────────── */}
-      <div className="px-4 py-4">
-        <div style={{
-          background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '16px', overflow: 'hidden',
-          backdropFilter: 'blur(8px)',
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            
+      <div className="px-4 py-4 relative z-10">
+        <div className="flex flex-col gap-3">
+          
             {/* ─── Column Headers ─── */}
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
+            <div className="grid grid-cols-[60px_minmax(260px,1fr)_120px_130px_120px_minmax(240px,1.5fr)_120px] gap-2 items-center px-4 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                 {/* Rank */}
-                <th className="py-3 pl-6 pr-3 text-left w-12">
+                <div className="pl-2">
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>#</span>
-                </th>
+                </div>
                 {/* Query */}
-                <th className="py-3 pr-6 text-left">
+                <div>
                   <div className="flex items-center gap-2">
                     <Search size={10} className="text-white/20" />
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Signal / Query</span>
                   </div>
-                </th>
+                </div>
                 {/* Volume */}
-                <th className="py-3 pr-8 text-left">
+                <div>
                   <button onClick={() => setSortBy('volume')} className="flex items-center gap-1.5 transition-colors" style={{ color: sortBy === 'volume' ? '#06b6d4' : 'rgba(255,255,255,0.3)' }}>
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>Volume</span>
                     {sortBy === 'volume' && <ArrowUpRight size={9} />}
                   </button>
-                </th>
+                </div>
                 {/* Velocity */}
-                <th className="py-3 pr-8 text-left">
+                <div>
                   <button onClick={() => setSortBy('velocity')} className="flex items-center gap-1.5 transition-colors" style={{ color: sortBy === 'velocity' ? '#06b6d4' : 'rgba(255,255,255,0.3)' }}>
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>Δ Velocity</span>
                     {sortBy === 'velocity' && <ArrowUpRight size={9} />}
                   </button>
-                </th>
+                </div>
                 {/* Started */}
-                <th className="py-3 pr-8 text-left">
+                <div>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Started</span>
-                </th>
+                </div>
                 {/* Breakdown */}
-                <th className="py-3 pr-6 text-left">
+                <div>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Trend Breakdown</span>
-                </th>
+                </div>
                 {/* Sparkline */}
-                <th className="py-3 pr-6 text-left">
+                <div>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Past 24h</span>
-                </th>
-              </tr>
-            </thead>
+                </div>
+            </div>
 
             {/* ─── Rows ─── */}
-            <tbody>
+            <div className="flex flex-col gap-3">
               {sorted.map((entry, i) => (
                 <TrendRow key={entry.rank} entry={entry} index={i} />
               ))}
-            </tbody>
-          </table>
+            </div>
+
 
           {/* Footer */}
           <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)' }}>
@@ -546,10 +540,10 @@ export function AdvancedAnalytics() {
       </div>
 
       {/* ── Supplementary Panels ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 pb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 pb-8 relative z-10">
         
         {/* Signal Distribution */}
-        <div className="col-span-1 p-5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="glass-card col-span-1 p-5" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px' }}>
           <div className="flex items-center gap-2 mb-4">
             <Zap size={12} className="text-cyan-400" />
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Source Distribution</span>
@@ -572,7 +566,7 @@ export function AdvancedAnalytics() {
         </div>
 
         {/* Category Heatmap */}
-        <div className="col-span-1 p-5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="glass-card col-span-1 p-5" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px' }}>
           <div className="flex items-center gap-2 mb-4">
             <Activity size={12} className="text-purple-400" />
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Category Heatmap</span>
@@ -593,7 +587,7 @@ export function AdvancedAnalytics() {
         </div>
 
         {/* Top Breakouts */}
-        <div className="col-span-1 p-5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="glass-card col-span-1 p-5" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px' }}>
           <div className="flex items-center gap-2 mb-4">
             <ArrowUpRight size={12} className="text-emerald-400" />
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Top Breakout Signals</span>
