@@ -65,13 +65,19 @@ async function rateLimitedFetch(url: string) {
   }
   
   lastRequestTime = Date.now();
-  const response = await fetch(url);
+  
+  // Use a CORS proxy for development/localhost
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  const response = await fetch(proxyUrl);
   
   if (!response.ok) {
-    throw new Error(`Reddit API error: ${response.status}`);
+    throw new Error(`Reddit API Proxy error: ${response.status}`);
   }
   
-  return response.json();
+  const proxyData = await response.json();
+  const data = JSON.parse(proxyData.contents);
+  
+  return data;
 }
 
 /**
