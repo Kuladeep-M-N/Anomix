@@ -90,7 +90,7 @@ const SECTIONS = [
       },
       {
         subtitle: 'Refresh Interval',
-        text: 'Reddit data auto-refreshes every 5 minutes (300,000ms). This respects Reddit's rate limits while keeping data reasonably fresh.',
+        text: "Reddit data auto-refreshes every 5 minutes (300,000ms). This respects Reddit's rate limits while keeping data reasonably fresh.",
       },
       {
         subtitle: 'Export Formats',
