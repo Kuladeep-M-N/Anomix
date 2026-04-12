@@ -224,11 +224,11 @@ const ObservatoriumGlobe: React.FC = () => {
         overflow: 'hidden',
       }}
     >
-      {/* ── SPACE TOGGLE (Dual-Navigation) ── */}
+      {/* ── SPACE TOGGLE (centered at top) ── */}
       <div
         style={{
           position: 'absolute',
-          top: '96px',
+          top: '80px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 30,
@@ -254,7 +254,40 @@ const ObservatoriumGlobe: React.FC = () => {
         </div>
       </div>
 
-      {/* ── THREE.JS GLOBE CONTAINER (scales to mini-map in Space 02) ── */}
+      {/* ── ACTIVE TREND INDICATOR (slim, centered, non-intrusive) ── */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '140px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 20,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '7px 18px',
+          borderRadius: '100px',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          backdropFilter: 'blur(12px)',
+          pointerEvents: 'none',
+          transition: 'opacity 0.4s ease',
+          opacity: isSpace02 ? 0 : 1,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', animation: 'pulse 2s infinite', flexShrink: 0 }} />
+        <span style={{ fontSize: '11px', fontFamily: "'JetBrains Mono', monospace", color: 'rgba(255,255,255,0.75)', fontWeight: 700, letterSpacing: '0.05em' }}>
+          {activeTrend}
+        </span>
+        {trendData.length > 0 && (
+          <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', marginLeft: '4px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            · {trendData.length} nodes
+          </span>
+        )}
+      </div>
+
+      {/* ── THREE.JS GLOBE CONTAINER (full screen, scales to mini-map in Space 02) ── */}
       <div
         ref={globeContainerRef}
         style={{
@@ -280,40 +313,19 @@ const ObservatoriumGlobe: React.FC = () => {
         />
       </div>
 
-      {/* ── STATUS PANEL (Left, Space 01 only) ── */}
-      <div
-        className="liquid-glass"
-        style={{
-          position: 'absolute',
-          top: '160px',
-          left: '32px',
-          zIndex: 10,
-          padding: '28px',
-          borderRadius: '24px',
-          maxWidth: '300px',
-          pointerEvents: 'none',
-          userSelect: 'none',
-          transition: 'opacity 0.4s ease, transform 0.5s var(--spring-snappy)',
-          opacity: isSpace02 ? 0 : 1,
-          transform: isSpace02 ? 'translateX(-20px)' : 'translateX(0)',
-        }}
-      >
-        <p style={{ fontSize: '9px', letterSpacing: '0.4em', textTransform: 'uppercase', color: '#60a5fa', fontWeight: 700, marginBottom: '8px' }}>
-          Space 01 · Observatorium
-        </p>
-        <h1 style={{ fontSize: '2rem', fontWeight: 900, color: 'white', marginBottom: '16px', letterSpacing: '-0.02em' }}>
-          Global Pulse
-        </h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 2s infinite', flexShrink: 0 }} />
-          <span style={{ color: 'white', fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {activeTrend}
-          </span>
-        </div>
-        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '12px' }}>
-          {trendData.length > 0 ? `${trendData.length} nodes active` : 'Connecting to vault…'}
-        </p>
-      </div>
+      {/* ── Globe glow halo (Space 01 only) ── */}
+      {!isSpace02 && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 1,
+            background: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(34,102,255,0.06) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
 
       {/* ── SPACE 02 MINI-MAP LABEL ── */}
       {isSpace02 && (
@@ -411,7 +423,6 @@ const ObservatoriumGlobe: React.FC = () => {
               )}
             </div>
 
-            {/* CTA — now triggers Space 02 */}
             <button
               style={{ width: '100%', padding: '14px', background: 'white', color: 'black', border: 'none', borderRadius: '16px', fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', transition: 'transform 0.2s' }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)'; }}

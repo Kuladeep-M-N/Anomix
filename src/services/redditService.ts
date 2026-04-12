@@ -54,30 +54,39 @@ export interface RedditTrendData {
   error?: string;
 }
 
+let isFirstRequest = true;
+
 async function rateLimitedFetch(url: string) {
   const now = Date.now();
   const timeSinceLastRequest = now - lastRequestTime;
   
-  if (timeSinceLastRequest < REQUEST_DELAY) {
-    await new Promise(resolve => 
+  // Skip delay on the very first request so the page loads immediately.
+  // Apply rate limiting only on subsequent requests to respect Reddit's limits.
+  if (!isFirstRequest && timeSinceLastRequest < REQUEST_DELAY) {
+    await new Promise(resolve =>
       setTimeout(resolve, REQUEST_DELAY - timeSinceLastRequest)
     );
   }
-  
+  isFirstRequest = false;
   lastRequestTime = Date.now();
-  
-  // Use a CORS proxy for development/localhost
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-  const response = await fetch(proxyUrl);
-  
-  if (!response.ok) {
-    throw new Error(`Reddit API Proxy error: ${response.status}`);
+
+  // 1. Try direct fetch first (works when CORS headers are present or in production)
+  try {
+    const direct = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (direct.ok) return direct.json();
+  } catch (_) {
+    // CORS blocked — fall through to proxy
   }
-  
-  const proxyData = await response.json();
-  const data = JSON.parse(proxyData.contents);
-  
-  return data;
+
+  // 2. Fallback: fast CORS proxy
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+  const response = await fetch(proxyUrl);
+
+  if (!response.ok) {
+    throw new Error(`Reddit API error: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 /**

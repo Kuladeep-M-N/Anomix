@@ -57,7 +57,7 @@ export function Navigation({ onOpenSettings }: NavigationProps) {
           }}
         >
           <Activity size={18} strokeWidth={2.5} style={{ color: 'rgba(99,102,241,0.9)' }} />
-          Aegis Trends
+          Anomix
         </NavLink>
 
         {/* Center nav links */}

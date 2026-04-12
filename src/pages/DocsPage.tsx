@@ -156,7 +156,7 @@ export default function DocsPage() {
           </h1>
         </div>
         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1rem', lineHeight: 1.7 }}>
-          Complete guide to the Aegis Trends anomaly detection platform.
+          Complete guide to the Anomix anomaly detection platform.
         </p>
       </div>
 

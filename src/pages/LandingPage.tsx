@@ -78,7 +78,7 @@ export default function LandingPage() {
         {/* Logo */}
         <div className="font-display" style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.05rem', fontWeight: 700, color: 'white', letterSpacing: '-0.03em' }}>
           <Activity size={18} strokeWidth={2.5} style={{ color: 'rgba(99,102,241,0.9)' }} />
-          Aegis Trends
+          Anomix
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
