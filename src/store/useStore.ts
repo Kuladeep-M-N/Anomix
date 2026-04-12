@@ -65,6 +65,18 @@ export interface GlobeFocusPoint {
   label: string;
 }
 
+export interface RedditPostSummary {
+  id: string;
+  lat: number;
+  lng: number;
+  title: string;
+  subreddit: string;
+  engagement: number;
+  sentiment: string;
+  url?: string;
+  type?: 'reddit';
+}
+
 interface AppState {
   selectedPlatform: Platform;
   data: DataPoint[];
@@ -81,6 +93,7 @@ interface AppState {
   selectedCountry: string | null;
   velocityData: VelocityData | null;
   globeFocusPoint: GlobeFocusPoint | null;
+  selectedRedditPost: RedditPostSummary | null;
 
   // Actions
   setPlatform: (platform: Platform) => void;
@@ -99,6 +112,7 @@ interface AppState {
   setSelectedCountry: (country: string | null) => void;
   setVelocityData: (data: VelocityData | null) => void;
   setGlobeFocusPoint: (point: GlobeFocusPoint | null) => void;
+  setSelectedRedditPost: (post: RedditPostSummary | null) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -117,6 +131,7 @@ export const useStore = create<AppState>((set) => ({
   selectedCountry: null,
   velocityData: null,
   globeFocusPoint: null,
+  selectedRedditPost: null,
 
   setPlatform: (platform) => set({ selectedPlatform: platform }),
   setData: (data) => set({ data }),
@@ -141,4 +156,5 @@ export const useStore = create<AppState>((set) => ({
   setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
   setVelocityData: (velocityData) => set({ velocityData }),
   setGlobeFocusPoint: (globeFocusPoint) => set({ globeFocusPoint }),
+  setSelectedRedditPost: (selectedRedditPost) => set({ selectedRedditPost }),
 }));

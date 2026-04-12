@@ -28,6 +28,7 @@ const ObservatoriumGlobe: React.FC = () => {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rafRef = useRef<number>(0);
   const trendDataRef = useRef<TrendPoint[]>([]);
+  const animatingCamera = useRef<boolean>(false);
 
   const raycaster = useRef(new THREE.Raycaster());
   const mouse = useRef(new THREE.Vector2());
@@ -37,11 +38,13 @@ const ObservatoriumGlobe: React.FC = () => {
   const [card, setCard] = useState<TrendPoint | null>(null);
   const [globeReady, setGlobeReady] = useState(false);
   const [redditPoints, setRedditPoints] = useState<any[]>([]);
+  const [spikeHitTargets, setSpikeHitTargets] = useState<Array<{ x: number; y: number; data: any }>>([]);
+  const allPointsRef = useRef<any[]>([]);
 
   const { 
     activeSpace, setActiveSpace, setSelectedCountry, 
     selectedCountry, setVelocityData, globeFocusPoint, 
-    setGlobeFocusPoint 
+    setGlobeFocusPoint, selectedRedditPost, setSelectedRedditPost 
   } = useStore();
   
   const { data: redditData } = useRedditData(true, 300000);
@@ -52,8 +55,7 @@ const ObservatoriumGlobe: React.FC = () => {
     setActiveSpace(target);
     if (target === 'space-02') {
       setSelectedCountry(country ?? null);
-      // Close any open country card when switching spaces
-      setCard(null);
+      // NOTE: Do NOT clear the card here — callers manage card state themselves
     } else {
       setSelectedCountry(null);
     }
@@ -92,6 +94,7 @@ const ObservatoriumGlobe: React.FC = () => {
     const points = redditData.posts.map(post => {
       const loc = getSubredditLocation(post.subreddit);
       return {
+        ...post,
         ...loc,
         score: post.engagement > 2000 ? 95 : 60,
         type: 'reddit',
@@ -103,18 +106,55 @@ const ObservatoriumGlobe: React.FC = () => {
   }, [redditData]);
 
   // ── 1.2 Handle Camera Focus ──────────────────────────────────────────────
+  const flyToPoint = useCallback((lat: number, lng: number) => {
+    const globe = globeRef.current;
+    const camera = cameraRef.current;
+    const controls = globe?.__controls;
+    
+    if (!globe || !camera || !controls) return;
+    
+    controls.autoRotate = false;
+    if (animatingCamera.current) return;
+    animatingCamera.current = true;
+    
+    const coords = globe.getCoords(lat, lng, 0);
+    if (!coords) {
+      animatingCamera.current = false;
+      return;
+    }
+    
+    // Scale out the direction vector to an appropriate distance
+    const targetVector = new THREE.Vector3(coords.x, coords.y, coords.z).normalize().multiplyScalar(320);
+    
+    const startPos = camera.position.clone();
+    const startTime = performance.now();
+    const duration = 1200;
+    
+    const animateCamera = (time: number) => {
+      const elapsed = time - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3); // ease out cubic
+      
+      camera.position.copy(startPos).slerp(targetVector, ease);
+      controls.update(); 
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateCamera);
+      } else {
+        animatingCamera.current = false;
+      }
+    };
+    requestAnimationFrame(animateCamera);
+  }, []);
+
   useEffect(() => {
     if (globeRef.current && globeFocusPoint) {
       const { lat, lng } = globeFocusPoint;
+      flyToPoint(lat, lng);
       
-      // Stop auto-rotate to allow user to see the point
-      if (globeRef.current?.__controls) {
-        globeRef.current.__controls.autoRotate = false;
-      }
+      // Clear country card when focusing on a specific post/point from dashboard
+      setCard(null);
 
-      // Fly to point
-      globeRef.current.pointOfView({ lat, lng, altitude: 0.6 }, 2500);
-      
       // Cleanup: Clear focus point after trigger
       const timeout = setTimeout(() => {
         setGlobeFocusPoint(null);
@@ -122,7 +162,7 @@ const ObservatoriumGlobe: React.FC = () => {
       
       return () => clearTimeout(timeout);
     }
-  }, [globeFocusPoint, setGlobeFocusPoint]);
+  }, [globeFocusPoint, setGlobeFocusPoint, flyToPoint]);
 
   // ── 2. Three.js init – strict-mode safe ──────────────────────────────────
   useEffect(() => {
@@ -173,26 +213,45 @@ const ObservatoriumGlobe: React.FC = () => {
       .atmosphereAltitude(0.15);
     scene.add(globe);
     globeRef.current = globe;
+    
+    // Debug hooks
+    (window as any).myGlobe = globe;
+    (window as any).myScene = scene;
+    (window as any).myCamera = camera;
 
     const handleClick = (e: MouseEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.current.setFromCamera(mouse.current, camera);
+      raycaster.current.params.Points.threshold = 3;
 
-      const hits = raycaster.current.intersectObjects(globe.children, true);
+      // Intersect the entire scene recursively to ensure we hit nested spikes/rings
+      const hits = raycaster.current.intersectObjects(scene.children, true);
+      
       for (const hit of hits) {
-        const data = (hit.object as any).__data;
+        let obj: any = hit.object;
+        let data = obj.__data;
+        
+        // Search up the parent tree to find data (nested meshes in three-globe)
+        while (!data && obj.parent) {
+          obj = obj.parent;
+          data = obj.__data;
+        }
+
         if (data) {
           if (controls) controls.autoRotate = false;
           
           // Fly to the point
-          globe.pointOfView({ lat: data.lat, lng: data.lng, altitude: 0.6 }, 2000);
+          flyToPoint(data.lat, data.lng);
 
-          if (data.country) {
-            // ── IMPLICIT Space 02 trigger: click on a country ──
-            transitionToSpace('space-02', data.country);
+          if (data.type === 'reddit') {
+            setSelectedRedditPost(data as any);
+            setCard(null);
+          } else if (data.country) {
+            // Show Regional Intel card and stay in space-01
             setCard(data as TrendPoint);
+            setSelectedRedditPost(null);
           }
           return;
         }
@@ -200,22 +259,87 @@ const ObservatoriumGlobe: React.FC = () => {
     };
 
     const handlePointerMove = (e: MouseEvent) => {
-      if (!controls) return;
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.current.setFromCamera(mouse.current, camera);
-      const hits = raycaster.current.intersectObjects(globe.children, true);
-      controls.enableZoom = hits.length > 0;
+      raycaster.current.params.Points.threshold = 3;
+
+      const hits = raycaster.current.intersectObjects(scene.children, true);
+      
+      let isOverInteractive = false;
+      for (const hit of hits) {
+        let obj: any = hit.object;
+        let data = obj.__data;
+        while (!data && obj.parent) {
+          obj = obj.parent;
+          data = obj.__data;
+        }
+        if (data) {
+          isOverInteractive = true;
+          break;
+        }
+      }
+      
+      renderer.domElement.style.cursor = isOverInteractive ? 'pointer' : 'default';
+      
+      if (controls) {
+        controls.enableZoom = true;
+      }
     };
 
     renderer.domElement.addEventListener('click', handleClick);
     renderer.domElement.addEventListener('pointermove', handlePointerMove);
 
+    const setSpikeTargetsRef = { fn: setSpikeHitTargets };
+
     const tick = () => {
       rafRef.current = requestAnimationFrame(tick);
       if (controls) controls.update();
       renderer.render(scene, camera);
+
+      // Project all high-score spike positions to screen coordinates each frame
+      const globe = globeRef.current;
+      if (globe && allPointsRef.current.length > 0) {
+        const VIRAL_THRESHOLD = 70;
+        const W = renderer.domElement.clientWidth;
+        const H = renderer.domElement.clientHeight;
+        
+        const targets: Array<{ x: number; y: number; data: any }> = [];
+        
+        for (const pt of allPointsRef.current) {
+          if (Number(pt.score) < VIRAL_THRESHOLD) continue;
+          
+          // Get 3D world position from lat/lng using the globe's coordinate system
+          const coords = globe.getCoords(pt.lat, pt.lng, 0.28);
+          if (!coords) continue;
+          
+          const pos = new THREE.Vector3(coords.x, coords.y, coords.z);
+          
+          // Check if point is on the visible side of the globe
+          const cameraDir = camera.position.clone().normalize();
+          const pointDir = pos.clone().normalize();
+          const dot = cameraDir.dot(pointDir);
+          if (dot < 0.1) continue; // Skip points on the back side
+          
+          // Project to normalized device coordinates
+          const ndc = pos.clone().project(camera);
+          
+          // Only show if in front of camera
+          if (ndc.z > 1) continue;
+          
+          // Convert to screen pixels
+          const screenX = (ndc.x * 0.5 + 0.5) * W;
+          const screenY = (-ndc.y * 0.5 + 0.5) * H;
+          
+          // Only add if within screen bounds
+          if (screenX > 0 && screenX < W && screenY > 0 && screenY < H) {
+            targets.push({ x: screenX, y: screenY, data: pt });
+          }
+        }
+        
+        setSpikeTargetsRef.fn(targets);
+      }
     };
     tick();
 
@@ -249,24 +373,30 @@ const ObservatoriumGlobe: React.FC = () => {
     const globe = globeRef.current;
     if (!globe) return;
 
-    // Combine Firestore and Reddit data
+    // Combine Firestore and Reddit data with strict numeric parsing
     const combinedPoints = [
       ...trendData,
       ...redditPoints
-    ];
+    ].map(p => ({
+      ...p,
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+      score: Number(p.score)
+    }));
+
+    // Keep ref in sync so the tick loop can project positions to screen coords
+    allPointsRef.current = combinedPoints;
 
     const VIRAL_THRESHOLD = 70;
 
     globe
       .pointsData(combinedPoints)
       .pointColor((d: any) => {
-        const score = Number(d.score);
-        if (score >= VIRAL_THRESHOLD) return '#ff3333'; // Bright Red for spikes
+        if (d.score >= VIRAL_THRESHOLD) return '#ff3333'; // Bright Red for spikes
         return d.type === 'reddit' ? '#60a5fa' : '#4fa8ff';
       })
       .pointAltitude((d: any) => {
-        const score = Number(d.score);
-        if (score >= VIRAL_THRESHOLD) return 0.25; 
+        if (d.score >= VIRAL_THRESHOLD) return 0.28; 
         return d.type === 'reddit' ? 0.12 : 0.08;
       })
       .pointRadius((d: any) => d.type === 'reddit' ? (d.size || 0.4) : 0.4)
@@ -387,6 +517,53 @@ const ObservatoriumGlobe: React.FC = () => {
         />
       </div>
 
+      {/* ── SPIKE HIT ZONES (HTML overlays projected from 3D positions) ── */}
+      {!isSpace02 && spikeHitTargets.map((target, idx) => (
+        <div
+          key={`spike-${idx}`}
+          onClick={() => {
+            const data = target.data;
+            if (!data) return;
+            if (globeRef.current?.__controls) {
+              globeRef.current.__controls.autoRotate = false;
+            }
+            flyToPoint(data.lat, data.lng);
+            if (data.type === 'reddit') {
+              setSelectedRedditPost(data as any);
+              setCard(null);
+            } else if (data.country) {
+              // Show Regional Intel card in space-01 (don't switch to space-02)
+              setCard(data as TrendPoint);
+              setSelectedRedditPost(null);
+            }
+          }}
+          title={target.data?.type === 'reddit' ? target.data?.title : target.data?.country}
+          style={{
+            position: 'absolute',
+            left: target.x - 30,
+            top: target.y - 30,
+            width: 60,
+            height: 60,
+            borderRadius: '50%',
+            cursor: 'pointer',
+            zIndex: 10,
+            background: 'transparent',
+            border: 'none',
+            // Uncomment below to debug overlay positions visually:
+            // background: 'rgba(255,0,0,0.15)',
+            // border: '1px solid red',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 60, 60, 0.15)';
+            e.currentTarget.style.border = '2px solid rgba(255, 60, 60, 0.5)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.border = 'none';
+          }}
+        />
+      ))}
+
       {/* ── Globe glow halo (Space 01 only) ── */}
       {!isSpace02 && (
         <div
@@ -431,8 +608,101 @@ const ObservatoriumGlobe: React.FC = () => {
       {/* ── VELOCITY GRID (Space 02) ── */}
       <VelocityGrid isVisible={isSpace02} />
 
+      {/* ── REDDIT INTELLIGENCE SUMMARY CARD ── */}
+      {selectedRedditPost && !isSpace02 && (
+        <div
+          className="animate-slide-in"
+          style={{
+            position: 'absolute',
+            right: '32px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '380px',
+            zIndex: 30,
+          }}
+        >
+          <div
+            className="liquid-glass"
+            style={{
+              padding: '32px',
+              borderRadius: '32px',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.9)',
+              backdropFilter: 'blur(32px)',
+              background: 'linear-gradient(135deg, rgba(88, 28, 135, 0.1) 0%, rgba(15, 23, 42, 0.6) 100%)',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#8b5cf6', animation: 'pulseRing 2s infinite' }} />
+                  <p style={{ fontSize: '9px', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#a78bfa', fontWeight: 700 }}>Social Intel Report</p>
+                </div>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white', letterSpacing: '-0.02em', lineHeight: 1.2, marginTop: '8px' }}>
+                  {selectedRedditPost.subreddit.toUpperCase()} Surge
+                </h2>
+              </div>
+              <button
+                onClick={() => setSelectedRedditPost(null)}
+                style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Metrics Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+              <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <p style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Engagement</p>
+                <p style={{ fontSize: '16px', fontWeight: 800, color: 'white', fontFamily: 'monospace' }}>{selectedRedditPost.engagement.toLocaleString()}</p>
+              </div>
+              <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <p style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Sentiment</p>
+                <p style={{ fontSize: '16px', fontWeight: 800, color: selectedRedditPost.sentiment === 'positive' ? '#4ade80' : selectedRedditPost.sentiment === 'negative' ? '#f87171' : '#fbbf24', textTransform: 'capitalize' }}>
+                  {selectedRedditPost.sentiment}
+                </p>
+              </div>
+            </div>
+
+            {/* AI Summary Section */}
+            <div style={{ padding: '24px', background: 'rgba(139, 92, 246, 0.08)', borderRadius: '24px', border: '1px solid rgba(139, 92, 246, 0.2)', marginBottom: '24px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                  <div style={{ padding: '4px', borderRadius: '6px', background: 'rgba(167, 139, 250, 0.2)' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8"/><path d="m4.93 4.93 7.07 7.07"/><path d="M2 12h8"/><path d="m4.93 19.07 7.07-7.07"/><path d="M12 22v-8"/><path d="m19.07 19.07-7.07-7.07"/><path d="M22 12h-8"/><path d="m19.07 4.93-7.07 7.07"/></svg>
+                  </div>
+                  <span style={{ fontSize: '10px', fontWeight: 800, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Intelligence Summary</span>
+               </div>
+               <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, margin: 0 }}>
+                 AI detected a viral surge in <strong style={{color: '#c084fc'}}>r/{selectedRedditPost.subreddit}</strong> regarding <strong style={{color: 'white'}}>{selectedRedditPost.title}</strong>. 
+                 Conversational velocity is tracking at <span style={{color: '#a78bfa', fontWeight: 700}}>{(selectedRedditPost.engagement / 10).toFixed(1)} events/min</span>. 
+                 This trend currently represents a key anomaly in the {selectedRedditPost.subreddit} sector with high cross-platform potential.
+               </p>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => window.open(selectedRedditPost.url, '_blank')}
+                style={{ flex: 1, padding: '14px', background: '#8b5cf6', color: 'white', border: 'none', borderRadius: '16px', fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', transition: 'transform 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#7c3aed'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#8b5cf6'; }}
+              >
+                Deep Dive Source →
+              </button>
+              <button
+                onClick={() => setSelectedRedditPost(null)}
+                style={{ padding: '14px 20px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── REGIONAL BREAKOUT CARD (Space 01 only) ── */}
-      {card && !isSpace02 && (
+      {card && !isSpace02 && !selectedRedditPost && (
         <div
           className="animate-slide-in"
           style={{

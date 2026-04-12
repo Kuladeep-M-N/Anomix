@@ -287,7 +287,7 @@ function SubredditMiniCard({ name, engagement }: { name: string; engagement: num
  * Dashboard Component
  */
 export function Dashboard() {
-  const { setGlobeFocusPoint } = useStore();
+  const { setData, setGlobeFocusPoint, setSelectedRedditPost } = useStore();
   const { data: redditData, isLoading, refresh } = useRedditData(true, 300000);
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -311,9 +311,23 @@ export function Dashboard() {
       .slice(0, 12);
   }, [redditData.posts]);
 
-  const handleFocus = (subreddit: string, topic: string) => {
-    const loc = getSubredditLocation(subreddit);
-    setGlobeFocusPoint({ ...loc, label: topic });
+  const handleFocus = (event: LiveEvent) => {
+    const loc = getSubredditLocation(event.subreddit);
+    
+    // Update store with both location focus and detailed post content
+    setGlobeFocusPoint({ ...loc, label: event.topic });
+    setSelectedRedditPost({
+      id: event.id,
+      lat: loc.lat,
+      lng: loc.lng,
+      title: event.topic,
+      subreddit: event.subreddit,
+      engagement: event.engagement,
+      sentiment: event.sentiment,
+      url: event.url,
+      type: 'reddit'
+    });
+
     navigate('/dashboard/observatorium');
   };
 
@@ -364,6 +378,7 @@ export function Dashboard() {
                 </button>
               ))}
             </div>
+            </div>
             <span className="text-[11px] font-mono text-white/20 uppercase tracking-tighter">
               Showing {filteredEvents.length} items // real-time priority
             </span>
@@ -385,7 +400,7 @@ export function Dashboard() {
                   key={event.id} 
                   event={event} 
                   index={i} 
-                  onFocus={() => handleFocus(event.subreddit, event.topic)} 
+                  onFocus={() => handleFocus(event)}
                 />
               ))
             ) : (
