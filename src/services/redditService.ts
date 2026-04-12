@@ -70,15 +70,20 @@ async function rateLimitedFetch(url: string) {
   isFirstRequest = false;
   lastRequestTime = Date.now();
 
-  // 1. Try direct fetch first (works when CORS headers are present or in production)
-  try {
-    const direct = await fetch(url, { headers: { 'Accept': 'application/json' } });
-    if (direct.ok) return direct.json();
-  } catch (_) {
-    // CORS blocked — fall through to proxy
+  // On localhost direct Reddit fetch always fails with CORS — skip straight to proxy.
+  // On a deployed domain Reddit may allow it, so we try direct first in production.
+  const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+  if (!isLocalhost) {
+    try {
+      const direct = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (direct.ok) return direct.json();
+    } catch (_) {
+      // CORS blocked in production too — fall through
+    }
   }
 
-  // 2. Fallback: fast CORS proxy
+  // CORS proxy (fast, reliable for dev)
   const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
   const response = await fetch(proxyUrl);
 
