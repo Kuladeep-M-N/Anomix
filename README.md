@@ -2,7 +2,7 @@
 
 **Anomix** is a high-fidelity, real-time command center application built to detect and visualize social media trend anomalies. Designed as a cutting-edge monitoring dashboard, it enables users to observe global conversational velocity and viral spikes across platforms like Reddit using a stunning 3D Observatorium Globe and comprehensive data analytics.
 
-![Anomix Dashboard](https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop) *(Demo visualization)*
+
 
 ## 🚀 Key Features
 
