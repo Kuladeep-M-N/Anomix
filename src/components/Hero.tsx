@@ -1,9 +1,11 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useScrollY } from '../hooks/useScrollSync';
 
 const TEXT = 'See the Unseen.';
 
 export function Hero() {
+  const navigate = useNavigate();
   const orbBlueRef = useRef<HTMLDivElement>(null);
   const orbPurpleRef = useRef<HTMLDivElement>(null);
   const orbCyanRef = useRef<HTMLDivElement>(null);
@@ -176,7 +178,7 @@ export function Hero() {
         ref={ctaRef as any}
       >
         <button
-          onClick={() => document.getElementById('data-grid')?.scrollIntoView({ behavior: 'smooth' })}
+          onClick={() => navigate('/dashboard/monitor')}
           style={{
             background: 'white',
             color: 'black',
