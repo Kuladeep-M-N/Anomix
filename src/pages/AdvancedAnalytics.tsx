@@ -408,8 +408,6 @@ function StatPill({ icon, value, label, color }: { icon: React.ReactNode; value:
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function AdvancedAnalytics() {
-  useMagneticCursor();
-
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'relevance' | 'volume' | 'velocity'>('relevance');
   const [headerReady, setHeaderReady] = useState(false);

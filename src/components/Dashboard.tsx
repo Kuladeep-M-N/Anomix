@@ -15,7 +15,6 @@ import { useMagneticCursor } from '../hooks/useMagneticCursor';
 // ... (rest of the file types/helpers/sub-components) ...
 
 export function Dashboard() {
-  useMagneticCursor();
   const { setData, setGlobeFocusPoint } = useStore();
   const { data: redditData, isLoading, refresh } = useRedditData(true, 300000);
   const navigate = useNavigate();

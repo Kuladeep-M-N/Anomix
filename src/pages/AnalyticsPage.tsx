@@ -238,7 +238,6 @@ function HighlightCard({
 }
 
 export default function AnalyticsPage() {
-  useMagneticCursor();
   const { data: redditData, isLoading } = useRedditData(false);
 
   const summaries = buildSummaries(redditData.posts, redditData.trendingTopics);
