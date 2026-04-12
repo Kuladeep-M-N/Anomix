@@ -57,7 +57,7 @@ export default function Layout() {
             }}
           >
             <Activity size={18} strokeWidth={2.5} style={{ color: 'rgba(99,102,241,0.9)' }} />
-            Aegis Trends
+            Anomix
           </button>
 
           {/* Navigation Links */}
