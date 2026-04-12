@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Activity, ArrowRight, Play } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
+import LandingSmoke from '../components/LandingSmoke';
 
 const TEXT = 'See the Unseen.';
 
@@ -41,6 +42,9 @@ export default function LandingPage() {
     >
       {/* Grain overlay */}
       <div className="grain-overlay" aria-hidden="true" />
+
+      {/* 3D Smoke Overlay */}
+      <LandingSmoke />
 
       {/* Ambient orbs */}
       <div className="orb" style={{ background: 'rgba(59,130,246,0.25)', top: '-15%', left: '-15%', zIndex: 0 }} />
