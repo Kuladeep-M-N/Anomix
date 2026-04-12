@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { db } from '../firebaseConfig';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { useStore } from '../store/useStore';
-import VelocityMatrix from './VelocityMatrix';
+import VelocityGrid from './VelocityGrid';
 
 interface TrendPoint {
   lat: number;
@@ -342,8 +342,8 @@ const ObservatoriumGlobe: React.FC = () => {
         </div>
       )}
 
-      {/* ── VELOCITY MATRIX (Space 02) ── */}
-      <VelocityMatrix isVisible={isSpace02} />
+      {/* ── VELOCITY GRID (Space 02) ── */}
+      <VelocityGrid isVisible={isSpace02} />
 
       {/* ── REGIONAL BREAKOUT CARD (Space 01 only) ── */}
       {card && !isSpace02 && (

@@ -555,3 +555,38 @@ body {
   transform: scale(1.03);
 }
 
+/* ─── Streaming & Glitch Animations (Space 02 Intelligence Grid) ─── */
+@keyframes streaming-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) translateZ(0);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+    filter: blur(0);
+  }
+}
+
+.streaming-enter {
+  opacity: 0;
+  animation: streaming-enter 0.5s var(--spring-snappy) forwards;
+  will-change: transform, opacity, filter;
+  contain: layout style;
+}
+
+@keyframes glitch-enter {
+  0% { opacity: 0; transform: translateX(10px) skewX(10deg); }
+  20% { opacity: 1; transform: translateX(-5px) skewX(-10deg); }
+  40% { transform: translateX(5px) skewX(5deg); }
+  60% { transform: translateX(-2px) skewX(-2deg); }
+  80% { transform: translateX(1px) skewX(1deg); }
+  100% { opacity: 1; transform: translateX(0) skewX(0); }
+}
+
+.glitch-enter {
+  opacity: 0;
+  animation: glitch-enter 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  will-change: transform, opacity;
+}

@@ -12,25 +12,25 @@ MOCK_TRENDS = ["AI", "SpaceX", "Sustainable Energy", "Virtual Reality", "Quantum
 
 # --- VELOCITY MATRIX POOLS ---
 BASELINE_SIGNAL_POOL = [
-    {"keyword": "Artificial Intelligence", "volume": 95},
-    {"keyword": "Machine Learning", "volume": 88},
-    {"keyword": "Cybersecurity", "volume": 82},
-    {"keyword": "Blockchain", "volume": 74},
-    {"keyword": "Quantum Computing", "volume": 71},
-    {"keyword": "Neural Networks", "volume": 68},
-    {"keyword": "Cloud Computing", "volume": 65},
-    {"keyword": "Data Science", "volume": 61},
+    {"keyword": "Artificial Intelligence", "volume": 95, "vector": "up", "summary": "Steady upward trajectory in enterprise adoption queries.", "threat_level": "emerging"},
+    {"keyword": "Machine Learning", "volume": 88, "vector": "steady", "summary": "Consistent high volume across academic and tech sectors.", "threat_level": "emerging"},
+    {"keyword": "Cybersecurity", "volume": 82, "vector": "up", "summary": "Recent high-profile breaches driving sustained search volume.", "threat_level": "elevated"},
+    {"keyword": "Blockchain", "volume": 74, "vector": "down", "summary": "Slight cooling in mainstream interest, focus shifting to utility.", "threat_level": "emerging"},
+    {"keyword": "Quantum Computing", "volume": 71, "vector": "up", "summary": "Steady growth following continuous research breakthroughs.", "threat_level": "emerging"},
+    {"keyword": "Neural Networks", "volume": 68, "vector": "steady", "summary": "Stable interest from AI practitioners and researchers.", "threat_level": "emerging"},
+    {"keyword": "Cloud Computing", "volume": 65, "vector": "steady", "summary": "Mature technology showing consistent baseline volume.", "threat_level": "emerging"},
+    {"keyword": "Data Science", "volume": 61, "vector": "down", "summary": "Slight decrease possibly due to shifting nomenclature.", "threat_level": "emerging"},
 ]
 
 VELOCITY_ANOMALY_POOL = [
-    {"keyword": "AGI Breakthrough", "spike": 4100, "source": "Signal"},
-    {"keyword": "SpaceX Starship", "spike": 2850, "source": "Signal"},
-    {"keyword": "AI Stock Crash", "spike": 1940, "source": "Noise"},
-    {"keyword": "GPT-5 Launch", "spike": 1200, "source": "Signal"},
-    {"keyword": "Deepfake Senate", "spike": 980, "source": "Noise"},
-    {"keyword": "Quantum Supremacy", "spike": 780, "source": "Signal"},
-    {"keyword": "Rogue AI Alert", "spike": 620, "source": "Noise"},
-    {"keyword": "Neural Implant FDA", "spike": 450, "source": "Signal"},
+    {"keyword": "AGI Breakthrough", "spike": 4100, "source": "Signal", "vector": "up", "threat_level": "critical", "summary": "Sudden search spike following alleged leaked research benchmarks."},
+    {"keyword": "SpaceX Starship", "spike": 2850, "source": "Signal", "vector": "up", "threat_level": "critical", "summary": "Massive global interest surge leading up to orbital test flight."},
+    {"keyword": "AI Stock Crash", "spike": 1940, "source": "Noise", "vector": "up", "threat_level": "elevated", "summary": "Panic selling queries trending due to unverified regulatory rumors."},
+    {"keyword": "GPT-5 Launch", "spike": 1200, "source": "Signal", "vector": "up", "threat_level": "elevated", "summary": "Anticipatory searches spiking after cryptic executive tweets."},
+    {"keyword": "Deepfake Senate", "spike": 980, "source": "Noise", "vector": "up", "threat_level": "emerging", "summary": "Viral video debunked, but search volume maintains long-tail presence."},
+    {"keyword": "Quantum Supremacy", "spike": 780, "source": "Signal", "vector": "up", "threat_level": "emerging", "summary": "Renewed interest following competitor claims of qubit scaling."},
+    {"keyword": "Rogue AI Alert", "spike": 620, "source": "Noise", "vector": "up", "threat_level": "emerging", "summary": "Sci-fi trending topic overlapping with genuine safety concerns."},
+    {"keyword": "Neural Implant FDA", "spike": 450, "source": "Signal", "vector": "up", "threat_level": "emerging", "summary": "Approval speculation driving focused medical tech searches."},
 ]
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

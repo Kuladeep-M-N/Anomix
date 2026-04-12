@@ -39,12 +39,18 @@ export interface Alert {
 export interface BaselineSignalItem {
   keyword: string;
   volume: number;
+  vector: 'up' | 'down' | 'steady';
+  summary: string;
+  threat_level: 'critical' | 'elevated' | 'emerging';
 }
 
 export interface VelocityAnomalyItem {
   keyword: string;
   spike: number;
   source: 'Signal' | 'Noise';
+  vector: 'up' | 'down' | 'steady';
+  summary: string;
+  threat_level: 'critical' | 'elevated' | 'emerging';
 }
 
 export interface VelocityData {
