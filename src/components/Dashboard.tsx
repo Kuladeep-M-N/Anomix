@@ -340,7 +340,7 @@ export function Dashboard() {
             Anomix Monitoring
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', margin: '8px 0 0', lineHeight: 1.5 }}>
-            Real-time trend anomaly detection across Reddit · AI-powered · Ensemble model <span style={{ color: '#3b82f6' }}>98.2% accuracy</span>
+            Real-time trend anomaly detection across Social Media · AI-powered · Ensemble model <span style={{ color: '#3b82f6' }}>98.2% accuracy</span>
           </p>
         </div>
 
