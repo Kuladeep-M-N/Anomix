@@ -378,7 +378,6 @@ export function Dashboard() {
                 </button>
               ))}
             </div>
-            </div>
             <span className="text-[11px] font-mono text-white/20 uppercase tracking-tighter">
               Showing {filteredEvents.length} items // real-time priority
             </span>
