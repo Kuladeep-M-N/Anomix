@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
-import type { VelocityData, VelocityAnomalyItem, BaselineSignalItem } from '../store/useStore';
+import type { VelocityData } from '../store/useStore';
 
 const FALLBACK_VELOCITY: VelocityData = {
   baseline_signal: [
