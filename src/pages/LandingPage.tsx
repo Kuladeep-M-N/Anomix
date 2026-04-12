@@ -4,18 +4,10 @@ import { useEffect, useState, useRef } from 'react';
 
 const TEXT = 'See the Unseen.';
 
-const LOG_MESSAGES = [
-  '09:10:30 [NET] Latency variance +12ms in EU-West',
-  '09:10:59 [SYNC] Database clusters aligned across 8 nodes',
-  '09:11:03 [AUTH] Biometric handshake successful',
-  '09:11:06 [SCAN] Node 6AA activity spike detected · Reddit',
-  '09:11:14 [ALERT] Anomaly threshold breach @ r/technology',
-  '09:11:22 [ML] LSTM confidence 98.2% · Ensemble activated',
-];
+
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [logs, setLogs] = useState<string[]>([]);
   const [chars, setChars] = useState<boolean[]>([]);
   const mountedRef = useRef(true);
 
@@ -34,14 +26,7 @@ export default function LandingPage() {
     return () => { mountedRef.current = false; };
   }, []);
 
-  // System log animation
-  useEffect(() => {
-    LOG_MESSAGES.forEach((msg, idx) => {
-      setTimeout(() => {
-        setLogs(prev => [...prev, msg]);
-      }, 800 + idx * 900);
-    });
-  }, []);
+
 
   return (
     <div
@@ -154,9 +139,9 @@ export default function LandingPage() {
         <h1
           className="font-display"
           style={{
-            fontSize: 'clamp(3.5rem, 9vw, 9rem)',
+            fontSize: 'clamp(2.8rem, 6vw, 6.5rem)',
             letterSpacing: '-0.04em',
-            lineHeight: 0.95,
+            lineHeight: 1,
             color: 'white',
             maxWidth: '900px',
           }}
@@ -287,49 +272,7 @@ export default function LandingPage() {
         </div>
       </main>
 
-      {/* System Log Panel */}
-      <div
-        className="liquid-glass"
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          width: '380px',
-          maxHeight: '220px',
-          borderRadius: '16px',
-          padding: '16px',
-          zIndex: 20,
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s infinite' }} />
-          <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
-            System Log
-          </span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {logs.map((log, idx) => (
-            <p
-              key={idx}
-              style={{
-                fontSize: '10px',
-                fontFamily: 'monospace',
-                color: log.includes('[ALERT]') ? '#fbbf24' : 'rgba(255,255,255,0.5)',
-                margin: 0,
-                animation: 'slide-in 0.3s ease',
-              }}
-            >
-              {log}
-            </p>
-          ))}
-          {logs.length === 0 && (
-            <p style={{ fontSize: '10px', fontFamily: 'monospace', color: 'rgba(255,255,255,0.2)', margin: 0 }}>
-              Initializing systems...
-            </p>
-          )}
-        </div>
-      </div>
+
     </div>
   );
 }
