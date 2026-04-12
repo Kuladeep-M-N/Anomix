@@ -1,10 +1,11 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Activity, Globe, LayoutDashboard, BarChart3, BookOpen, Settings } from 'lucide-react';
+import { Activity, Globe, LayoutDashboard, BarChart3, BookOpen, Settings, TrendingUp } from 'lucide-react';
 
 const NAV_LINKS = [
   { name: 'Observatorium', path: '/dashboard/observatorium', icon: Globe },
   { name: 'Monitoring', path: '/dashboard/monitor', icon: LayoutDashboard },
   { name: 'Analytics', path: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Intel Grid', path: '/dashboard/advanced-analytics', icon: TrendingUp },
   { name: 'Docs', path: '/dashboard/docs', icon: BookOpen },
 ];
 

@@ -6,6 +6,7 @@ import LandingPage from './pages/LandingPage';
 import MonitorPage from './pages/MonitorPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import DocsPage from './pages/DocsPage';
+import { AdvancedAnalytics } from './pages/AdvancedAnalytics';
 import ObservatoriumGlobe from './components/ObservatoriumGlobe';
 import { SystemBoot } from './components/SystemBoot';
 import { DemoControls } from './components/DemoControls';
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="observatorium" element={<ObservatoriumGlobe />} />
           <Route path="monitor" element={<MonitorPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="advanced-analytics" element={<AdvancedAnalytics />} />
           <Route path="docs" element={<DocsPage />} />
         </Route>
 
