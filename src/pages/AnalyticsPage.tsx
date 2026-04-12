@@ -4,6 +4,7 @@ import {
   Zap, TrendingUp, Flame, AlertTriangle, ArrowUpRight,
   ArrowDownRight, Minus, Clock, Brain, Sparkles, Activity
 } from 'lucide-react';
+import { useMagneticCursor } from '../hooks/useMagneticCursor';
 
 // ─── Static platform profiles ─────────────────────────────────────────────
 const PLATFORMS = [
@@ -97,24 +98,16 @@ function buildSummaries(posts: any[], topics: any[]): string[] {
 // ─── Platform card ────────────────────────────────────────────────────────
 function PlatformCard({ p, delay }: { p: typeof PLATFORMS[0]; delay: number }) {
   const status = STATUS_META[p.status];
-  const [hovered, setHovered] = useState(false);
 
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="glass-card"
       style={{
-        background: hovered ? p.glow : 'rgba(255,255,255,0.025)',
-        border: `1px solid ${hovered ? p.border : 'rgba(255,255,255,0.06)'}`,
-        borderRadius: '20px',
         padding: '24px',
         display: 'flex',
         flexDirection: 'column',
         gap: '14px',
-        transition: 'all 0.3s ease',
         cursor: 'default',
-        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
-        boxShadow: hovered ? `0 12px 40px ${p.glow}` : 'none',
         animationDelay: `${delay}ms`,
         animation: 'fadeUp 0.5s ease both',
       }}
@@ -168,23 +161,13 @@ function TrendRow({ topic, rank, engagement, idx }: { topic: string; rank: numbe
   const isTop = rank <= 3;
   return (
     <div
+      className="glass-card"
       style={{
         display: 'flex', alignItems: 'center', gap: '16px',
         padding: '12px 16px',
-        borderRadius: '12px',
-        background: idx === 0 ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.02)',
-        border: `1px solid ${idx === 0 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.04)'}`,
-        transition: 'all 0.2s ease',
         animation: `fadeUp 0.4s ease ${idx * 60}ms both`,
         cursor: 'default',
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.background = 'rgba(59,130,246,0.06)';
-        (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(59,130,246,0.15)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLDivElement).style.background = idx === 0 ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.02)';
-        (e.currentTarget as HTMLDivElement).style.borderColor = idx === 0 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.04)';
+        flexShrink: 0,
       }}
     >
       {/* Rank */}
@@ -232,22 +215,11 @@ function HighlightCard({
 }: { icon: React.ReactNode; label: string; value: string; color: string; delay: number }) {
   return (
     <div
+      className="glass-card"
       style={{
-        background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: '16px', padding: '20px',
+        padding: '20px',
         display: 'flex', alignItems: 'center', gap: '14px',
-        transition: 'all 0.25s ease',
         animation: `fadeUp 0.5s ease ${delay}ms both`,
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.background = `${color}10`;
-        (e.currentTarget as HTMLDivElement).style.borderColor = `${color}30`;
-        (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.025)';
-        (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.06)';
-        (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
       }}
     >
       <div style={{ padding: '10px', borderRadius: '12px', background: `${color}15`, flexShrink: 0 }}>
@@ -265,8 +237,8 @@ function HighlightCard({
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
+  useMagneticCursor();
   const { data: redditData, isLoading } = useRedditData(false);
 
   const summaries = buildSummaries(redditData.posts, redditData.trendingTopics);
@@ -335,10 +307,8 @@ export default function AnalyticsPage() {
 
       {/* ── AI SUMMARY HERO ── */}
       <div
+        className="glass-card"
         style={{
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.06) 100%)',
-          border: '1px solid rgba(99,102,241,0.2)',
-          borderRadius: '24px',
           padding: '32px 36px',
           marginBottom: '32px',
           minHeight: '110px',

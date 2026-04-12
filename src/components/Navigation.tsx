@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { name: 'Observatorium', path: '/observatorium', icon: <Globe size={16} /> },
   { name: 'Monitoring', path: '/monitor', icon: <LayoutDashboard size={16} /> },
   { name: 'Analytics', path: '/analytics', icon: <Database size={16} /> },
+  { name: 'Trending', path: '/advanced-analytics', icon: <Activity size={16} /> },
   { name: 'Docs', path: '/docs', icon: <FileText size={16} /> },
 ];
 

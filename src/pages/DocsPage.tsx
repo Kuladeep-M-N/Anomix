@@ -18,7 +18,7 @@ const SECTIONS = [
       },
       {
         subtitle: 'Understanding the Dashboard',
-        text: 'The dashboard consists of KPI metric cards, a real-time Engagement Velocity chart, Detection Engine Config, Analytics panels, and an anomaly Alert Queue.',
+        text: 'The dashboard serves as an AI-powered Insight Engine, featuring a live anomalies queue and a real-time event feed. It focuses on pure storytelling and automated insights rather than manual chart interpretation.',
       },
     ],
   },
@@ -271,8 +271,8 @@ export default function DocsPage() {
             }}
           >
             Need help? Contact{' '}
-            <a href="mailto:support@aegistrends.com" style={{ color: '#3b82f6', textDecoration: 'none' }}>
-              support@aegistrends.com
+            <a href="mailto:support@anomix.com" style={{ color: '#3b82f6', textDecoration: 'none' }}>
+              support@anomix.com
             </a>
           </div>
         </div>
