@@ -399,3 +399,47 @@ body {
 #root { padding-bottom: 64px; scroll-behavior: smooth; }
 #hero { scroll-margin-top: 60px; }
 #data-grid { scroll-margin-top: 60px; }
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Glassmorphism Utilities */
+.glass-effect {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dark .glass-effect {
+  background: rgba(3, 3, 3, 0.4);
+}
+
+/* Recharts Customization */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke-opacity: 0.1;
+}
+
+.recharts-area-chart-area path {
+  transition: all 0.3s ease;
+}
+
+/* Custom Tailwind Overrides */
+@layer base {
+  body {
+    @apply antialiased text-slate-900 bg-white dark:text-slate-50 dark:bg-black;
+  }
+}
