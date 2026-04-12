@@ -6,6 +6,8 @@ import { db } from '../firebaseConfig';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { useStore } from '../store/useStore';
 import VelocityGrid from './VelocityGrid';
+import { useRedditData } from '../hooks/useRedditData';
+import { getSubredditLocation } from '../utils/geoMapping';
 
 interface TrendPoint {
   lat: number;
@@ -34,8 +36,15 @@ const ObservatoriumGlobe: React.FC = () => {
   const [activeTrend, setActiveTrend] = useState('CONNECTING...');
   const [card, setCard] = useState<TrendPoint | null>(null);
   const [globeReady, setGlobeReady] = useState(false);
+  const [redditPoints, setRedditPoints] = useState<any[]>([]);
 
-  const { activeSpace, setActiveSpace, setSelectedCountry, selectedCountry, setVelocityData } = useStore();
+  const { 
+    activeSpace, setActiveSpace, setSelectedCountry, 
+    selectedCountry, setVelocityData, globeFocusPoint, 
+    setGlobeFocusPoint 
+  } = useStore();
+  
+  const { data: redditData } = useRedditData(true, 300000);
   const isSpace02 = activeSpace === 'space-02';
 
   // ── Space transition handler ─────────────────────────────────────────────
@@ -76,6 +85,45 @@ const ObservatoriumGlobe: React.FC = () => {
     return unsub;
   }, [globeReady, setVelocityData]);
 
+  // ── 1.1 Process Reddit Data for Globe ────────────────────────────────────
+  useEffect(() => {
+    if (!redditData?.posts) return;
+    
+    const points = redditData.posts.map(post => {
+      const loc = getSubredditLocation(post.subreddit);
+      return {
+        ...loc,
+        score: post.engagement > 2000 ? 95 : 60,
+        type: 'reddit',
+        title: post.title,
+        size: post.engagement > 2000 ? 0.6 : 0.3
+      };
+    });
+    setRedditPoints(points);
+  }, [redditData]);
+
+  // ── 1.2 Handle Camera Focus ──────────────────────────────────────────────
+  useEffect(() => {
+    if (globeRef.current && globeFocusPoint) {
+      const { lat, lng } = globeFocusPoint;
+      
+      // Stop auto-rotate to allow user to see the point
+      if (globeRef.current?.__controls) {
+        globeRef.current.__controls.autoRotate = false;
+      }
+
+      // Fly to point
+      globeRef.current.pointOfView({ lat, lng, altitude: 0.6 }, 2500);
+      
+      // Cleanup: Clear focus point after trigger
+      const timeout = setTimeout(() => {
+        setGlobeFocusPoint(null);
+      }, 3000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [globeFocusPoint, setGlobeFocusPoint]);
+
   // ── 2. Three.js init – strict-mode safe ──────────────────────────────────
   useEffect(() => {
     if (initialized.current) return;
@@ -113,8 +161,10 @@ const ObservatoriumGlobe: React.FC = () => {
     controls.maxDistance = 600;
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.8;
-
     const globe = new ThreeGlobe({ animateIn: true });
+    // @ts-ignore
+    globe.__controls = controls;
+
     globe
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
       .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
@@ -133,11 +183,17 @@ const ObservatoriumGlobe: React.FC = () => {
       const hits = raycaster.current.intersectObjects(globe.children, true);
       for (const hit of hits) {
         const data = (hit.object as any).__data;
-        if (data?.country) {
+        if (data) {
           if (controls) controls.autoRotate = false;
-          // ── IMPLICIT Space 02 trigger: click on a country ──
-          transitionToSpace('space-02', data.country);
-          setCard(data as TrendPoint);
+          
+          // Fly to the point
+          globe.pointOfView({ lat: data.lat, lng: data.lng, altitude: 0.6 }, 2000);
+
+          if (data.country) {
+            // ── IMPLICIT Space 02 trigger: click on a country ──
+            transitionToSpace('space-02', data.country);
+            setCard(data as TrendPoint);
+          }
           return;
         }
       }
@@ -188,26 +244,44 @@ const ObservatoriumGlobe: React.FC = () => {
     };
   }, [transitionToSpace]);
 
-  // ── 3. Update globe points when Firebase data arrives ───────────────────
+  // ── 3. Update globe points when data arrives ────────────────────────────
   useEffect(() => {
     const globe = globeRef.current;
-    if (!globe || trendData.length === 0) return;
+    if (!globe) return;
+
+    // Combine Firestore and Reddit data
+    const combinedPoints = [
+      ...trendData,
+      ...redditPoints
+    ];
+
+    const VIRAL_THRESHOLD = 70;
 
     globe
-      .pointsData(trendData)
-      .pointColor(() => '#4fa8ff')
-      .pointAltitude(0.08)
-      .pointRadius(0.4)
+      .pointsData(combinedPoints)
+      .pointColor((d: any) => {
+        const score = Number(d.score);
+        if (score >= VIRAL_THRESHOLD) return '#ff3333'; // Bright Red for spikes
+        return d.type === 'reddit' ? '#60a5fa' : '#4fa8ff';
+      })
+      .pointAltitude((d: any) => {
+        const score = Number(d.score);
+        if (score >= VIRAL_THRESHOLD) return 0.25; 
+        return d.type === 'reddit' ? 0.12 : 0.08;
+      })
+      .pointRadius((d: any) => d.type === 'reddit' ? (d.size || 0.4) : 0.4)
       .pointsMerge(false)
       .pointsTransitionDuration(800);
 
     globe
-      .ringsData(trendData.filter((d) => d.score > 70))
-      .ringColor(() => '#ff4040')
-      .ringMaxRadius(3)
+      .ringsData(combinedPoints.filter((d: any) => Number(d.score) >= VIRAL_THRESHOLD))
+      .ringColor((d: any) => d.type === 'reddit' ? '#ef4444' : '#ff4040')
+      .ringMaxRadius((d: any) => d.type === 'reddit' ? 5 : 3)
       .ringPropagationSpeed(2)
       .ringRepeatPeriod(800);
-  }, [trendData]);
+
+    setGlobeReady(true);
+  }, [trendData, redditPoints]);
 
   // ── Ticker data ──────────────────────────────────────────────────────────
   const ticker = trendData.length > 0

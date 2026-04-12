@@ -6,8 +6,10 @@ import type { RedditPost, TrendingTopic } from '../services/redditService';
 import {
   Zap, TrendingUp, AlertTriangle, RefreshCw, Radio,
   Activity, BarChart2, Globe, ChevronRight, Flame,
-  ArrowUpRight, ArrowDownRight
+  ArrowUpRight, ArrowDownRight, Target
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { getSubredditLocation } from '../utils/geoMapping';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 interface LiveEvent {
@@ -99,11 +101,16 @@ const ACTIVITY_STYLE = {
   critical: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
 };
 
-function EventCard({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
+function EventCard({ event, isNew, onFocus }: { event: LiveEvent; isNew: boolean; onFocus?: (e: React.MouseEvent) => void }) {
   const meta = EVENT_ICONS[event.type];
   const sentiment = SENTIMENT_STYLE[event.sentiment];
   const activity = ACTIVITY_STYLE[event.activity];
   const Icon = meta.icon;
+
+  const handleGlobeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onFocus?.(e);
+  };
 
   return (
     <div
@@ -119,7 +126,7 @@ function EventCard({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
         animation: isNew ? 'slideInFeed 0.4s cubic-bezier(0.32, 0.72, 0, 1) both' : undefined,
         cursor: event.url ? 'pointer' : 'default',
       }}
-      onClick={() => event.url && window.open(event.url, '_blank')}
+      onClick={onFocus}
     >
       {/* Icon */}
       <div style={{ padding: '8px', borderRadius: '10px', background: meta.bg, border: `1px solid ${meta.border}`, flexShrink: 0 }}>
@@ -136,7 +143,7 @@ function EventCard({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
             {event.activity}
           </span>
         </div>
-        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '13px', fontWeight: 600, margin: '0 0 6px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ color: 'rgba(255,255,255,1)', fontSize: '13px', fontWeight: 600, margin: '0 0 6px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {event.topic}
         </p>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -149,13 +156,33 @@ function EventCard({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
         </div>
       </div>
 
-      {/* Engagement */}
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontSize: '14px', fontWeight: 800, color: 'white', fontFamily: 'monospace' }}>
-          {event.engagement.toLocaleString()}
-        </div>
-        <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          pts
+      {/* Engagement + Actions */}
+      <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '18px' }}>
+        <div className="flex flex-col gap-2">
+          <div style={{ fontSize: '14px', fontWeight: 800, color: 'white', fontFamily: 'monospace' }}>
+            {event.engagement.toLocaleString()}
+          </div>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+             {event.url && (
+               <a 
+                 href={event.url} 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 onClick={(e) => e.stopPropagation()}
+                 style={{ padding: '6px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', display: 'flex' }}
+                 onMouseEnter={e => { (e.currentTarget as any).style.color = 'white'; (e.currentTarget as any).style.background = 'rgba(255,255,255,0.1)'; }}
+                 onMouseLeave={e => { (e.currentTarget as any).style.color = 'rgba(255,255,255,0.4)'; (e.currentTarget as any).style.background = 'rgba(255,255,255,0.05)'; }}
+               >
+                 <ArrowUpRight size={12} />
+               </a>
+             )}
+             <div 
+               style={{ padding: '6px', borderRadius: '8px', background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.2)', color: '#60a5fa', display: 'flex' }}
+               className="hover:bg-blue-500 hover:text-white transition-colors"
+             >
+               <Target size={12} />
+             </div>
+          </div>
         </div>
       </div>
     </div>
@@ -224,8 +251,15 @@ function SubredditCard({ name, postCount, engagement, rank }: { name: string; po
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function Dashboard() {
-  const { setData } = useStore();
+  const { setData, setGlobeFocusPoint } = useStore();
   const { data: redditData, isLoading, refresh } = useRedditData(true, 300000);
+  const navigate = useNavigate();
+
+  const handleFocus = (subreddit: string, topic: string) => {
+    const loc = getSubredditLocation(subreddit);
+    setGlobeFocusPoint({ ...loc, label: topic });
+    navigate('/dashboard/observatorium');
+  };
 
   const [events, setEvents] = useState<LiveEvent[]>([]);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
@@ -450,13 +484,21 @@ export function Dashboard() {
                 </div>
               </div>
               {events[0].url && (
-                <a href={events[0].url} target="_blank" rel="noopener noreferrer"
-                  style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}
-                  onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = 'white')}
-                  onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.3)')}
-                >
-                  <ChevronRight size={18} />
-                </a>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <button 
+                    onClick={() => handleFocus(events[0].subreddit, events[0].topic)}
+                    style={{ padding: '8px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', cursor: 'pointer' }}
+                  >
+                    <Target size={18} />
+                  </button>
+                  <a href={events[0].url} target="_blank" rel="noopener noreferrer"
+                    style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = 'white')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.3)')}
+                  >
+                    <ChevronRight size={18} />
+                  </a>
+                </div>
               )}
             </div>
           )}
@@ -494,7 +536,12 @@ export function Dashboard() {
               </div>
             ) : (
               events.map(event => (
-                <EventCard key={event.id} event={event} isNew={newIds.has(event.id)} />
+                <EventCard 
+                  key={event.id} 
+                  event={event} 
+                  isNew={newIds.has(event.id)} 
+                  onFocus={() => handleFocus(event.subreddit, event.topic)}
+                />
               ))
             )}
           </div>

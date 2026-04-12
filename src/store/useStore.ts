@@ -59,6 +59,12 @@ export interface VelocityData {
   generated_at: number;
 }
 
+export interface GlobeFocusPoint {
+  lat: number;
+  lng: number;
+  label: string;
+}
+
 interface AppState {
   selectedPlatform: Platform;
   data: DataPoint[];
@@ -74,6 +80,7 @@ interface AppState {
   activeSpace: ActiveSpace;
   selectedCountry: string | null;
   velocityData: VelocityData | null;
+  globeFocusPoint: GlobeFocusPoint | null;
 
   // Actions
   setPlatform: (platform: Platform) => void;
@@ -91,6 +98,7 @@ interface AppState {
   setActiveSpace: (space: ActiveSpace) => void;
   setSelectedCountry: (country: string | null) => void;
   setVelocityData: (data: VelocityData | null) => void;
+  setGlobeFocusPoint: (point: GlobeFocusPoint | null) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -108,6 +116,7 @@ export const useStore = create<AppState>((set) => ({
   activeSpace: 'space-01',
   selectedCountry: null,
   velocityData: null,
+  globeFocusPoint: null,
 
   setPlatform: (platform) => set({ selectedPlatform: platform }),
   setData: (data) => set({ data }),
@@ -131,4 +140,5 @@ export const useStore = create<AppState>((set) => ({
   setActiveSpace: (activeSpace) => set({ activeSpace }),
   setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
   setVelocityData: (velocityData) => set({ velocityData }),
+  setGlobeFocusPoint: (globeFocusPoint) => set({ globeFocusPoint }),
 }));
