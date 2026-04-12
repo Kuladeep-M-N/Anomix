@@ -2,12 +2,9 @@
 
 /* ─── Design Tokens (Emil's Spring Curves) ─────────────────────────── */
 :root {
-  --spring-snappy: linear(
-    0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 10.1%, 0.932 12%,
-    1.077 14.2%, 1.096 15%, 1.099 15.8%, 1.087 16.9%, 1.011 20.3%,
-    0.971 22.8%, 0.959 25%, 0.963 27%, 0.994 33.7%, 1.006 39.5%,
-    1 51.5%, 1 100%
-  );
+  /* Emil's Snappy Spring Curve */
+  --spring-snappy: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 10.1%, 0.932 12%, 1.077 14.2%, 1.096 15%, 1.099 15.8%, 1.087 16.9%, 1.011 20.3%, 0.971 22.8%, 0.959 25%, 0.963 27%, 0.994 33.7%, 1.006 39.5%, 1 51.5%, 1 100%);
+  --liquid-blur: blur(12px);
   --spring-smooth: cubic-bezier(0.32, 0.72, 0, 1);
   --spring-bouncy: linear(
     0, 0.011, 0.044 2.3%, 0.179 4.7%, 0.903 10.9%, 1.12 13.5%,
@@ -437,9 +434,39 @@ body {
   transition: all 0.3s ease;
 }
 
+/* ─── Liquid Glass (from GitHub) ────────────────────────────────────── */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: var(--liquid-blur);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  transition: transform 0.6s var(--spring-snappy), opacity 0.4s ease;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 90s linear infinite;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(40px) translateY(-50%); }
+  to { opacity: 1; transform: translateX(0) translateY(-50%); }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.6s var(--spring-snappy) forwards;
+}
+
 /* Custom Tailwind Overrides */
 @layer base {
   body {
     @apply antialiased text-slate-900 bg-white dark:text-slate-50 dark:bg-black;
   }
+}
 }

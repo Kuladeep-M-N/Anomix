@@ -1,10 +1,21 @@
 import { useRef } from 'react';
-import { Activity } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Activity, Globe, LayoutDashboard, Database, FileText } from 'lucide-react';
 
-const NAV_LINKS = ['Monitor', 'Analytics', 'Alerts', 'Docs'];
+const NAV_LINKS = [
+  { name: 'Observatorium', path: '/observatorium', icon: <Globe size={16} /> },
+  { name: 'Monitoring', path: '/monitor', icon: <LayoutDashboard size={16} /> },
+  { name: 'Analytics', path: '/analytics', icon: <Database size={16} /> },
+  { name: 'Docs', path: '/docs', icon: <FileText size={16} /> },
+];
 
-export function Navigation() {
+interface NavigationProps {
+  onOpenSettings?: () => void;
+}
+
+export function Navigation({ onOpenSettings }: NavigationProps) {
   const btnRef = useRef<HTMLButtonElement>(null);
+  const navigate = useNavigate();
 
   return (
     <nav
@@ -32,8 +43,9 @@ export function Navigation() {
         }}
       >
         {/* Logo */}
-        <div
-          className="font-display"
+        <NavLink
+          to="/"
+          className="font-display no-underline"
           style={{
             fontSize: '1.05rem',
             fontWeight: 700,
@@ -46,64 +58,53 @@ export function Navigation() {
         >
           <Activity size={18} strokeWidth={2.5} style={{ color: 'rgba(99,102,241,0.9)' }} />
           Aegis Trends
-        </div>
+        </NavLink>
 
         {/* Center nav links */}
         <ul
           style={{
             display: 'flex',
-            gap: '2px',
+            gap: '24px',
             listStyle: 'none',
             alignItems: 'center',
           }}
         >
           {NAV_LINKS.map((link) => (
-            <li key={link}>
-              <button
-                key={link}
-                className="nav-link"
-                onClick={() => {
-                  const id = link.toLowerCase() === 'monitor' ? 'data-grid' : 'hero';
-                  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '6px 14px',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  color: 'rgba(255,255,255,0.55)',
-                  textDecoration: 'none',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'color 0.2s, background 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.95)';
-                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.55)';
-                  (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                }}
+            <li key={link.path}>
+              <NavLink
+                to={link.path}
+                className={({ isActive }) => 
+                  `flex items-center gap-2 text-sm font-medium transition-all duration-200 ${
+                    isActive ? 'text-blue-400' : 'text-gray-400 hover:text-white'
+                  }`
+                }
+                style={{ textDecoration: 'none' }}
               >
-                <span>{link}</span>
-              </button>
+                {link.icon}
+                <span>{link.name}</span>
+              </NavLink>
             </li>
           ))}
         </ul>
 
         {/* Launch System button */}
-        <button 
-          ref={btnRef} 
-          className="launch-btn"
-          onClick={() => {
-            document.getElementById('data-grid')?.scrollIntoView({ behavior: 'smooth' });
-          }}
-        >
-          Launch System
-        </button>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={onOpenSettings}
+            className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors"
+          >
+            Settings
+          </button>
+          <button 
+            ref={btnRef} 
+            className="launch-btn"
+            onClick={() => {
+              navigate('/monitor');
+            }}
+          >
+            Launch System
+          </button>
+        </div>
       </div>
     </nav>
   );
