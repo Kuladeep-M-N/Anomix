@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import ThreeGlobe from 'three-globe';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { db } from '../firebaseConfig';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { useStore } from '../store/useStore';
+import VelocityMatrix from './VelocityMatrix';
 
 interface TrendPoint {
   lat: number;
@@ -15,14 +17,15 @@ interface TrendPoint {
 
 const ObservatoriumGlobe: React.FC = () => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const initialized = useRef(false); // ← Strict Mode guard
+  const globeContainerRef = useRef<HTMLDivElement>(null);
+  const initialized = useRef(false);
 
   const globeRef = useRef<any>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rafRef = useRef<number>(0);
-  const trendDataRef = useRef<TrendPoint[]>([]); // live ref for raycaster
+  const trendDataRef = useRef<TrendPoint[]>([]);
 
   const raycaster = useRef(new THREE.Raycaster());
   const mouse = useRef(new THREE.Vector2());
@@ -30,6 +33,22 @@ const ObservatoriumGlobe: React.FC = () => {
   const [trendData, setTrendData] = useState<TrendPoint[]>([]);
   const [activeTrend, setActiveTrend] = useState('CONNECTING...');
   const [card, setCard] = useState<TrendPoint | null>(null);
+  const [globeReady, setGlobeReady] = useState(false);
+
+  const { activeSpace, setActiveSpace, setSelectedCountry, selectedCountry, setVelocityData } = useStore();
+  const isSpace02 = activeSpace === 'space-02';
+
+  // ── Space transition handler ─────────────────────────────────────────────
+  const transitionToSpace = useCallback((target: 'space-01' | 'space-02', country?: string | null) => {
+    setActiveSpace(target);
+    if (target === 'space-02') {
+      setSelectedCountry(country ?? null);
+      // Close any open country card when switching spaces
+      setCard(null);
+    } else {
+      setSelectedCountry(null);
+    }
+  }, [setActiveSpace, setSelectedCountry]);
 
   // ── 1. Firebase listener ─────────────────────────────────────────────────
   useEffect(() => {
@@ -42,39 +61,43 @@ const ObservatoriumGlobe: React.FC = () => {
           trendDataRef.current = data;
           setTrendData(data);
           setActiveTrend(payload.active_trend ?? 'SCANNING...');
+
+          // Push velocity_data to store if present
+          if (payload.velocity_data) {
+            setVelocityData(payload.velocity_data);
+          }
+
+          // Mark globe as ready for entrance animation trigger
+          if (!globeReady) setGlobeReady(true);
         }
       },
       (err) => console.error('[Vault] Firestore error:', err)
     );
     return unsub;
-  }, []);
+  }, [globeReady, setVelocityData]);
 
   // ── 2. Three.js init – strict-mode safe ──────────────────────────────────
   useEffect(() => {
-    if (initialized.current) return; // skip second Strict-Mode call
+    if (initialized.current) return;
     if (!mountRef.current) return;
     initialized.current = true;
 
     const container = mountRef.current;
 
-    // ── Scene
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    // ── Lighting (Brighter)
-    scene.add(new THREE.AmbientLight(0xffffff, 1.2)); // Was 0.6
-    const dir = new THREE.DirectionalLight(0xffffff, 2.5); // Was 1.5
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    const dir = new THREE.DirectionalLight(0xffffff, 2.5);
     dir.position.set(300, 300, 100);
     scene.add(dir);
 
-    // ── Camera (Bigger / Closer)
     const W = container.clientWidth || window.innerWidth;
     const H = container.clientHeight || window.innerHeight;
     const camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 10000);
-    camera.position.set(0, 0, 280); // Was 450
+    camera.position.set(0, 0, 280);
     cameraRef.current = camera;
 
-    // ── Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(W, H);
@@ -82,7 +105,6 @@ const ObservatoriumGlobe: React.FC = () => {
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // ── OrbitControls (Interactable)
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -92,7 +114,6 @@ const ObservatoriumGlobe: React.FC = () => {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.8;
 
-    // ── Globe
     const globe = new ThreeGlobe({ animateIn: true });
     globe
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
@@ -103,7 +124,6 @@ const ObservatoriumGlobe: React.FC = () => {
     scene.add(globe);
     globeRef.current = globe;
 
-    // ── Click handler (raycaster)
     const handleClick = (e: MouseEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -114,23 +134,21 @@ const ObservatoriumGlobe: React.FC = () => {
       for (const hit of hits) {
         const data = (hit.object as any).__data;
         if (data?.country) {
-          // Temporarily disable auto-rotate when examining a card
           if (controls) controls.autoRotate = false;
+          // ── IMPLICIT Space 02 trigger: click on a country ──
+          transitionToSpace('space-02', data.country);
           setCard(data as TrendPoint);
           return;
         }
       }
     };
 
-    // ── Hover handler (to prevent scrolling hijacking)
     const handlePointerMove = (e: MouseEvent) => {
       if (!controls) return;
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.current.setFromCamera(mouse.current, camera);
-
-      // If hovering the globe, enable zoom. Otherwise, let the browser scroll.
       const hits = raycaster.current.intersectObjects(globe.children, true);
       controls.enableZoom = hits.length > 0;
     };
@@ -138,19 +156,13 @@ const ObservatoriumGlobe: React.FC = () => {
     renderer.domElement.addEventListener('click', handleClick);
     renderer.domElement.addEventListener('pointermove', handlePointerMove);
 
-    // ── Animation loop
     const tick = () => {
       rafRef.current = requestAnimationFrame(tick);
-      if (controls) {
-        controls.update(); // OrbitControls handles the rotation if autoRotate is true
-      } else {
-        globe.rotation.y += 0.001;
-      }
+      if (controls) controls.update();
       renderer.render(scene, camera);
     };
     tick();
 
-    // ── Resize
     const onResize = () => {
       const w = container.clientWidth || window.innerWidth;
       const h = container.clientHeight || window.innerHeight;
@@ -160,7 +172,6 @@ const ObservatoriumGlobe: React.FC = () => {
     };
     window.addEventListener('resize', onResize);
 
-    // ── Cleanup
     return () => {
       initialized.current = false;
       cancelAnimationFrame(rafRef.current);
@@ -175,7 +186,7 @@ const ObservatoriumGlobe: React.FC = () => {
       cameraRef.current = null;
       sceneRef.current = null;
     };
-  }, []);
+  }, [transitionToSpace]);
 
   // ── 3. Update globe points when Firebase data arrives ───────────────────
   useEffect(() => {
@@ -198,7 +209,7 @@ const ObservatoriumGlobe: React.FC = () => {
       .ringRepeatPeriod(800);
   }, [trendData]);
 
-  // ── UI ───────────────────────────────────────────────────────────────────
+  // ── Ticker data ──────────────────────────────────────────────────────────
   const ticker = trendData.length > 0
     ? [...trendData, ...trendData]
     : Array(12).fill({ country: 'STANDBY', score: '—' });
@@ -213,24 +224,68 @@ const ObservatoriumGlobe: React.FC = () => {
         overflow: 'hidden',
       }}
     >
-      {/* Three.js mount point */}
+      {/* ── SPACE TOGGLE (Dual-Navigation) ── */}
       <div
-        ref={mountRef}
+        style={{
+          position: 'absolute',
+          top: '96px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 30,
+        }}
+      >
+        <div className="space-toggle">
+          <button
+            id="btn-space-01"
+            className={`space-toggle-btn ${!isSpace02 ? 'active' : ''}`}
+            onClick={() => transitionToSpace('space-01')}
+          >
+            <span style={{ fontSize: '13px' }}>🌍</span>
+            <span>Global Pulse</span>
+          </button>
+          <button
+            id="btn-space-02"
+            className={`space-toggle-btn ${isSpace02 ? 'active' : ''}`}
+            onClick={() => transitionToSpace('space-02', selectedCountry)}
+          >
+            <span style={{ fontSize: '13px' }}>⚡</span>
+            <span>Velocity Matrix</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── THREE.JS GLOBE CONTAINER (scales to mini-map in Space 02) ── */}
+      <div
+        ref={globeContainerRef}
         style={{
           position: 'absolute',
           inset: 0,
           zIndex: 0,
-          width: '100%',
-          height: '100%',
+          transformOrigin: 'top left',
+          transition: 'transform 0.7s var(--spring-snappy), opacity 0.5s ease',
+          transform: isSpace02
+            ? 'scale(0.4) translate(-60px, 40px)'
+            : 'scale(1) translate(0px, 0px)',
+          opacity: isSpace02 ? 0.75 : 1,
         }}
-      />
+      >
+        <div
+          ref={mountRef}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+          }}
+        />
+      </div>
 
-      {/* Status panel */}
+      {/* ── STATUS PANEL (Left, Space 01 only) ── */}
       <div
         className="liquid-glass"
         style={{
           position: 'absolute',
-          top: '96px',
+          top: '160px',
           left: '32px',
           zIndex: 10,
           padding: '28px',
@@ -238,6 +293,9 @@ const ObservatoriumGlobe: React.FC = () => {
           maxWidth: '300px',
           pointerEvents: 'none',
           userSelect: 'none',
+          transition: 'opacity 0.4s ease, transform 0.5s var(--spring-snappy)',
+          opacity: isSpace02 ? 0 : 1,
+          transform: isSpace02 ? 'translateX(-20px)' : 'translateX(0)',
         }}
       >
         <p style={{ fontSize: '9px', letterSpacing: '0.4em', textTransform: 'uppercase', color: '#60a5fa', fontWeight: 700, marginBottom: '8px' }}>
@@ -248,7 +306,7 @@ const ObservatoriumGlobe: React.FC = () => {
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 2s infinite', flexShrink: 0 }} />
-          <span style={{ color: 'white', fontFamily: 'monospace', fontSize: '14px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ color: 'white', fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {activeTrend}
           </span>
         </div>
@@ -257,8 +315,38 @@ const ObservatoriumGlobe: React.FC = () => {
         </p>
       </div>
 
-      {/* Regional Breakout Card */}
-      {card && (
+      {/* ── SPACE 02 MINI-MAP LABEL ── */}
+      {isSpace02 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '170px',
+            left: '24px',
+            zIndex: 15,
+            padding: '6px 14px',
+            borderRadius: '10px',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            backdropFilter: 'blur(8px)',
+            animation: 'card-enter-bouncy 0.4s var(--spring-bouncy) both',
+          }}
+        >
+          <p style={{ fontSize: '8px', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontWeight: 700, margin: 0 }}>
+            Mini-Map
+          </p>
+          {selectedCountry && (
+            <p style={{ fontSize: '10px', color: '#60a5fa', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", margin: '2px 0 0' }}>
+              ◎ {selectedCountry}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ── VELOCITY MATRIX (Space 02) ── */}
+      <VelocityMatrix isVisible={isSpace02} />
+
+      {/* ── REGIONAL BREAKOUT CARD (Space 01 only) ── */}
+      {card && !isSpace02 && (
         <div
           className="animate-slide-in"
           style={{
@@ -280,7 +368,6 @@ const ObservatoriumGlobe: React.FC = () => {
               backdropFilter: 'blur(24px)',
             }}
           >
-            {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
               <div>
                 <p style={{ fontSize: '9px', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#60a5fa', fontWeight: 700, marginBottom: '4px' }}>Regional Intel</p>
@@ -296,18 +383,16 @@ const ObservatoriumGlobe: React.FC = () => {
               </button>
             </div>
 
-            {/* Intensity */}
             <div style={{ marginBottom: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: 700, marginBottom: '8px' }}>
                 <span style={{ color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Intensity</span>
-                <span style={{ color: '#60a5fa', fontFamily: 'monospace' }}>{card.score}%</span>
+                <span style={{ color: '#60a5fa', fontFamily: "'JetBrains Mono', monospace" }}>{card.score}%</span>
               </div>
               <div style={{ height: '3px', width: '100%', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${card.score}%`, background: 'linear-gradient(90deg, #2563eb, #22d3ee)', borderRadius: '2px', transition: 'width 1s ease' }} />
               </div>
             </div>
 
-            {/* Insight */}
             <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', marginBottom: '24px' }}>
               <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
                 Viral signal detected for <strong style={{ color: 'white' }}>{activeTrend}</strong> in this region.
@@ -326,19 +411,20 @@ const ObservatoriumGlobe: React.FC = () => {
               )}
             </div>
 
-            {/* CTA */}
+            {/* CTA — now triggers Space 02 */}
             <button
               style={{ width: '100%', padding: '14px', background: 'white', color: 'black', border: 'none', borderRadius: '16px', fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', transition: 'transform 0.2s' }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              onClick={() => transitionToSpace('space-02', card.country)}
             >
-              Deep Sentiment Analysis →
+              Deep Velocity Analysis →
             </button>
           </div>
         </div>
       )}
 
-      {/* Bottom Ticker */}
+      {/* ── BOTTOM TICKER ── */}
       <div
         style={{
           position: 'absolute',
@@ -358,7 +444,7 @@ const ObservatoriumGlobe: React.FC = () => {
       >
         <div className="animate-marquee" style={{ display: 'flex', gap: '80px', whiteSpace: 'nowrap' }}>
           {ticker.map((d, i) => (
-            <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontFamily: 'monospace', textTransform: 'uppercase' }}>
+            <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase' }}>
               <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#3b82f6', opacity: 0.7, flexShrink: 0 }} />
               <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{d.country}</span>
               <span style={{ color: '#60a5fa' }}>{d.score}</span>

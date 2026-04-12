@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 export type Platform = 'reddit' | 'twitter' | 'instagram' | 'tiktok';
+export type ActiveSpace = 'space-01' | 'space-02';
 
 export interface DataPoint {
   timestamp: number;
@@ -35,6 +36,23 @@ export interface Alert {
   };
 }
 
+export interface BaselineSignalItem {
+  keyword: string;
+  volume: number;
+}
+
+export interface VelocityAnomalyItem {
+  keyword: string;
+  spike: number;
+  source: 'Signal' | 'Noise';
+}
+
+export interface VelocityData {
+  baseline_signal: BaselineSignalItem[];
+  velocity_anomalies: VelocityAnomalyItem[];
+  generated_at: number;
+}
+
 interface AppState {
   selectedPlatform: Platform;
   data: DataPoint[];
@@ -45,6 +63,11 @@ interface AppState {
   zThreshold: number;
   activeAlgorithm: string;
   isDarkMode: boolean;
+
+  // Space 02 - Velocity Matrix state
+  activeSpace: ActiveSpace;
+  selectedCountry: string | null;
+  velocityData: VelocityData | null;
 
   // Actions
   setPlatform: (platform: Platform) => void;
@@ -57,6 +80,11 @@ interface AppState {
   setZThreshold: (val: number) => void;
   setAlgorithm: (alg: string) => void;
   toggleDarkMode: () => void;
+
+  // Space 02 actions
+  setActiveSpace: (space: ActiveSpace) => void;
+  setSelectedCountry: (country: string | null) => void;
+  setVelocityData: (data: VelocityData | null) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -70,15 +98,20 @@ export const useStore = create<AppState>((set) => ({
   activeAlgorithm: 'Ensemble',
   isDarkMode: true,
 
+  // Space 02 defaults
+  activeSpace: 'space-01',
+  selectedCountry: null,
+  velocityData: null,
+
   setPlatform: (platform) => set({ selectedPlatform: platform }),
   setData: (data) => set({ data }),
-  addDataPoint: (point) => set((state) => ({ 
-    data: [...state.data.slice(-200), point], // Keep last 200 points
-    lastUpdate: Date.now() 
+  addDataPoint: (point) => set((state) => ({
+    data: [...state.data.slice(-200), point],
+    lastUpdate: Date.now()
   })),
   toggleLiveMode: () => set((state) => ({ isLiveMode: !state.isLiveMode })),
-  addAlert: (alert) => set((state) => ({ 
-    alerts: [alert, ...state.alerts].slice(0, 100) // Keep last 100 alerts
+  addAlert: (alert) => set((state) => ({
+    alerts: [alert, ...state.alerts].slice(0, 100)
   })),
   updateAlertStatus: (id, status) => set((state) => ({
     alerts: state.alerts.map((a) => a.id === id ? { ...a, status } : a)
@@ -87,4 +120,9 @@ export const useStore = create<AppState>((set) => ({
   setZThreshold: (zThreshold) => set({ zThreshold }),
   setAlgorithm: (activeAlgorithm) => set({ activeAlgorithm }),
   toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+
+  // Space 02 actions
+  setActiveSpace: (activeSpace) => set({ activeSpace }),
+  setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
+  setVelocityData: (velocityData) => set({ velocityData }),
 }));

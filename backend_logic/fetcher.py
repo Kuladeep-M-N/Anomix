@@ -10,6 +10,29 @@ import time
 # --- MOCK DATA FOR FALLBACK ---
 MOCK_TRENDS = ["AI", "SpaceX", "Sustainable Energy", "Virtual Reality", "Quantum Computing"]
 
+# --- VELOCITY MATRIX POOLS ---
+BASELINE_SIGNAL_POOL = [
+    {"keyword": "Artificial Intelligence", "volume": 95},
+    {"keyword": "Machine Learning", "volume": 88},
+    {"keyword": "Cybersecurity", "volume": 82},
+    {"keyword": "Blockchain", "volume": 74},
+    {"keyword": "Quantum Computing", "volume": 71},
+    {"keyword": "Neural Networks", "volume": 68},
+    {"keyword": "Cloud Computing", "volume": 65},
+    {"keyword": "Data Science", "volume": 61},
+]
+
+VELOCITY_ANOMALY_POOL = [
+    {"keyword": "AGI Breakthrough", "spike": 4100, "source": "Signal"},
+    {"keyword": "SpaceX Starship", "spike": 2850, "source": "Signal"},
+    {"keyword": "AI Stock Crash", "spike": 1940, "source": "Noise"},
+    {"keyword": "GPT-5 Launch", "spike": 1200, "source": "Signal"},
+    {"keyword": "Deepfake Senate", "spike": 980, "source": "Noise"},
+    {"keyword": "Quantum Supremacy", "spike": 780, "source": "Signal"},
+    {"keyword": "Rogue AI Alert", "spike": 620, "source": "Noise"},
+    {"keyword": "Neural Implant FDA", "spike": 450, "source": "Signal"},
+]
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SERVICE_ACCOUNT_PATH = os.path.join(BASE_DIR, 'serviceAccountKey.json')
 COORDINATES_PATH = os.path.join(BASE_DIR, 'coordinates.json')
@@ -57,6 +80,18 @@ def get_subtopics_fallback():
     """Returns the 'Mission Control' themed mock topics as requested."""
     return ["Market Velocity", "Search Volatility", "Viral Sentiment"]
 
+def generate_velocity_data():
+    """Generates the Velocity Matrix payload: Baseline Signal + Velocity Anomalies."""
+    baseline = random.sample(BASELINE_SIGNAL_POOL, 5)
+    anomalies = random.sample(VELOCITY_ANOMALY_POOL, 5)
+    # Sort anomalies descending by spike for dramatic visual impact
+    anomalies_sorted = sorted(anomalies, key=lambda x: x['spike'], reverse=True)
+    return {
+        "baseline_signal": baseline,
+        "velocity_anomalies": anomalies_sorted,
+        "generated_at": time.time()
+    }
+
 def process_and_upload(df, active_trend, is_mock=False):
     """Merges trends with coordinates and uploads to Firestore with metadata enrichment."""
     try:
@@ -83,12 +118,14 @@ def process_and_upload(df, active_trend, is_mock=False):
                 })
 
         # "The Projection" - Single Snapshot Update
+        velocity_data = generate_velocity_data()
         doc_ref = db.collection("observatorium").document("global_snapshot")
         doc_ref.set({
             "active_trend": active_trend,
             "last_updated": time.time(),
             "data": final_data,
-            "is_mock": is_mock
+            "is_mock": is_mock,
+            "velocity_data": velocity_data
         })
         status = "Projected (Live)" if not is_mock else "Projected (Mock Fallback)"
         print(f"[SUCCESS] Data {status} with Metadata ({len(final_data)} entries) to The Observatorium!")
