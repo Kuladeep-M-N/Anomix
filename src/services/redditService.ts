@@ -56,12 +56,17 @@ export interface RedditTrendData {
 
 let isFirstRequest = true;
 
-async function rateLimitedFetch(url: string) {
+// List of reliable CORS proxies
+const CORS_PROXIES = [
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
+];
+
+async function rateLimitedFetch(url: string, retryCount = 0): Promise<any> {
   const now = Date.now();
   const timeSinceLastRequest = now - lastRequestTime;
   
-  // Skip delay on the very first request so the page loads immediately.
-  // Apply rate limiting only on subsequent requests to respect Reddit's limits.
   if (!isFirstRequest && timeSinceLastRequest < REQUEST_DELAY) {
     await new Promise(resolve =>
       setTimeout(resolve, REQUEST_DELAY - timeSinceLastRequest)
@@ -70,29 +75,36 @@ async function rateLimitedFetch(url: string) {
   isFirstRequest = false;
   lastRequestTime = Date.now();
 
-  // On localhost direct Reddit fetch always fails with CORS — skip straight to proxy.
-  // On a deployed domain Reddit may allow it, so we try direct first in production.
   const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
-  if (!isLocalhost) {
+  if (!isLocalhost && retryCount === 0) {
     try {
       const direct = await fetch(url, { headers: { 'Accept': 'application/json' } });
       if (direct.ok) return direct.json();
     } catch (_) {
-      // CORS blocked in production too — fall through
+      // Fall through to proxies
     }
   }
 
-  // CORS proxy (fast, reliable for dev)
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-  const response = await fetch(proxyUrl);
+  const proxyFn = CORS_PROXIES[retryCount % CORS_PROXIES.length];
+  const proxyUrl = proxyFn(url);
 
-  if (!response.ok) {
-    throw new Error(`Reddit API error: ${response.status}`);
+  try {
+    const response = await fetch(proxyUrl);
+    if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
+    
+    const data = await response.json();
+    // Some proxies wrap the response (like allorigins)
+    return data.contents ? JSON.parse(data.contents) : data;
+  } catch (error) {
+    if (retryCount < CORS_PROXIES.length - 1) {
+      console.warn(`Proxy ${retryCount} failed, retrying with next...`, error);
+      return rateLimitedFetch(url, retryCount + 1);
+    }
+    throw error;
   }
-
-  return response.json();
 }
+
 
 /**
  * Fetch hot posts from a subreddit
@@ -319,6 +331,72 @@ export const DEFAULT_SUBREDDITS = [
 ];
 
 /**
+ * High-quality static fallback data for when API is completely unreachable
+ */
+const STATIC_FALLBACK_POSTS: RedditPost[] = [
+  {
+    id: 'f1',
+    timestamp: Date.now() - 3600000,
+    platform: 'Reddit',
+    subreddit: 'technology',
+    topic: 'Artificial General Intelligence (AGI) predicted to arrive by 2029 by leading researchers',
+    url: 'https://reddit.com/r/technology',
+    engagement: 4250,
+    sentiment: 0.5,
+    metrics: { upvotes: 3500, comments: 850, upvote_ratio: 0.92, awards: 12, crossposts: 4 },
+    author: 'tech_guru',
+    flair: 'AI News',
+    is_video: false,
+    thumbnail: null
+  },
+  {
+    id: 'f2',
+    timestamp: Date.now() - 7200000,
+    platform: 'Reddit',
+    subreddit: 'worldnews',
+    topic: 'Global climate treaty signed by 150 nations to phase out coal by 2040',
+    url: 'https://reddit.com/r/worldnews',
+    engagement: 3800,
+    sentiment: 0.5,
+    metrics: { upvotes: 3100, comments: 1200, upvote_ratio: 0.88, awards: 8, crossposts: 15 },
+    author: 'news_bot',
+    flair: 'Policy',
+    is_video: false,
+    thumbnail: null
+  },
+  {
+    id: 'f3',
+    timestamp: Date.now() - 10800000,
+    platform: 'Reddit',
+    subreddit: 'cryptocurrency',
+    topic: 'Ethereum Layer 2 scaling solution hits record high throughput',
+    url: 'https://reddit.com/r/cryptocurrency',
+    engagement: 2100,
+    sentiment: 0,
+    metrics: { upvotes: 1800, comments: 450, upvote_ratio: 0.85, awards: 5, crossposts: 2 },
+    author: 'crypto_analyst',
+    flair: 'Technical',
+    is_video: false,
+    thumbnail: null
+  },
+  {
+    id: 'f4',
+    timestamp: Date.now() - 5400000,
+    platform: 'Reddit',
+    subreddit: 'science',
+    topic: 'New breakthrough in room-temperature superconductivity verified by third party',
+    url: 'https://reddit.com/r/science',
+    engagement: 5100,
+    sentiment: 0.5,
+    metrics: { upvotes: 4500, comments: 1100, upvote_ratio: 0.95, awards: 25, crossposts: 30 },
+    author: 'science_daily',
+    flair: 'Physics',
+    is_video: false,
+    thumbnail: null
+  }
+];
+
+/**
  * Main function to fetch comprehensive Reddit trend data
  * @returns Complete trend data with posts, time-series, and topics
  */
@@ -326,21 +404,28 @@ export async function fetchRedditTrends(): Promise<RedditTrendData> {
   try {
     const posts = await fetchMultipleSubreddits(DEFAULT_SUBREDDITS);
     
+    // If we got no posts, use fallback data so the UI isn't empty
+    const finalPosts = posts.length > 0 ? posts : STATIC_FALLBACK_POSTS;
+    const isFallback = posts.length === 0;
+
     return {
-      posts: posts,
-      timeSeries: convertToTimeSeries(posts),
-      trendingTopics: extractTrendingTopics(posts),
+      posts: finalPosts,
+      timeSeries: convertToTimeSeries(finalPosts),
+      trendingTopics: extractTrendingTopics(finalPosts),
       lastUpdated: Date.now(),
-      subreddits: DEFAULT_SUBREDDITS
+      subreddits: DEFAULT_SUBREDDITS,
+      error: isFallback ? 'API limited - using fallback intelligence' : undefined
     };
   } catch (error: any) {
     console.error('Error fetching Reddit trends:', error);
     return {
-      posts: [],
-      timeSeries: [],
-      trendingTopics: [],
+      posts: STATIC_FALLBACK_POSTS,
+      timeSeries: convertToTimeSeries(STATIC_FALLBACK_POSTS),
+      trendingTopics: extractTrendingTopics(STATIC_FALLBACK_POSTS),
       lastUpdated: Date.now(),
-      error: error.message
+      subreddits: DEFAULT_SUBREDDITS,
+      error: `Connection failed (${error.message}) - Fallback active`
     };
   }
 }
+

@@ -238,11 +238,19 @@ function TacticalHeader({ lastUpdated, refresh, isRefreshing }: { lastUpdated: n
             </span>
           </div>
           <div className="flex items-center gap-2">
-             <Shield size={12} className="text-green-500/50" />
+             <Shield size={12} className={redditData.error ? "text-yellow-500/50" : "text-green-500/50"} />
              <span className="text-[11px] text-white/40 font-mono">
-               Anomaly engine: Active
+               Anomaly engine: {redditData.error ? 'Bypass Active' : 'Active'}
              </span>
           </div>
+          {redditData.error && (
+            <div className="flex items-center gap-2 px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded">
+               <span className="text-[8px] font-bold text-yellow-500 uppercase tracking-tighter">
+                 Signal Fallback Active
+               </span>
+            </div>
+          )}
+
         </div>
       </div>
 
