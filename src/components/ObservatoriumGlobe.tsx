@@ -92,15 +92,14 @@ const ObservatoriumGlobe: React.FC = () => {
     if (!redditData?.posts) return;
     
     const points = redditData.posts.map((post, index) => {
-      const loc = getSubredditLocation(post.subreddit);
+      // Pass title and id for unique global mapping and keyword detection
+      const loc = getSubredditLocation(post.subreddit, post.title, post.id);
       
-      // Add larger jitter to avoid overlapping spikes from same subreddit
-      // We use a deterministic jitter based on index so it doesn't jump every frame
-      const jitterLat = (Math.sin(index * 1.5) * 4.5);
-      const jitterLng = (Math.cos(index * 1.5) * 4.5);
+      // Small vibration jitter (reduced since coordinates are now unique per post)
+      const jitterLat = (Math.sin(index * 1.5) * 1.2);
+      const jitterLng = (Math.cos(index * 1.5) * 1.2);
       
       // Dynamic score: ensure viral posts stay above VIRAL_THRESHOLD (70)
-      // but scale height with engagement
       const baseScore = post.engagement > 2000 ? 80 : 50;
       const bonus = Math.min(18, post.engagement / 2000);
       const score = baseScore + bonus;
