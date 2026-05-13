@@ -91,15 +91,29 @@ const ObservatoriumGlobe: React.FC = () => {
   useEffect(() => {
     if (!redditData?.posts) return;
     
-    const points = redditData.posts.map(post => {
+    const points = redditData.posts.map((post, index) => {
       const loc = getSubredditLocation(post.subreddit);
+      
+      // Add small jitter to avoid overlapping spikes from same subreddit
+      // We use a deterministic jitter based on index so it doesn't jump every frame
+      const jitterLat = (Math.sin(index * 1.5) * 1.8);
+      const jitterLng = (Math.cos(index * 1.5) * 1.8);
+      
+      // Dynamic score: ensure viral posts stay above VIRAL_THRESHOLD (70)
+      // but scale height with engagement
+      const baseScore = post.engagement > 2000 ? 80 : 50;
+      const bonus = Math.min(18, post.engagement / 2000);
+      const score = baseScore + bonus;
+
       return {
         ...post,
         ...loc,
-        score: post.engagement > 2000 ? 95 : 60,
+        lat: loc.lat + jitterLat,
+        lng: loc.lng + jitterLng,
+        score: score,
         type: 'reddit',
         title: post.title,
-        size: post.engagement > 2000 ? 0.6 : 0.3
+        size: post.engagement > 2000 ? 0.7 : 0.4
       };
     });
     setRedditPoints(points);
