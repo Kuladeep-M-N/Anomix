@@ -652,12 +652,39 @@ const ObservatoriumGlobe: React.FC = () => {
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#8b5cf6', animation: 'pulseRing 2s infinite' }} />
                   <p style={{ fontSize: '9px', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#a78bfa', fontWeight: 700 }}>Social Intel Report</p>
                 </div>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'white', letterSpacing: '-0.01em', lineHeight: 1.3, marginTop: '8px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                   <div style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                     <span style={{ fontSize: '8px', fontWeight: 900, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Surge Detected</span>
+                   </div>
+                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1.5s infinite' }} />
+                </div>
+                <h2 style={{ 
+                  fontSize: '1.5rem', 
+                  fontWeight: 900, 
+                  color: 'white', 
+                  letterSpacing: '-0.03em', 
+                  lineHeight: 1.1, 
+                  marginBottom: '8px',
+                  display: '-webkit-box', 
+                  WebkitLineClamp: 3, 
+                  WebkitBoxOrient: 'vertical', 
+                  overflow: 'hidden',
+                  background: 'linear-gradient(to bottom, #ffffff 0%, #a1a1aa 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  filter: 'drop-shadow(0 0 12px rgba(255,255,255,0.1))'
+                }}>
                   {selectedRedditPost.title}
                 </h2>
-                <p style={{ fontSize: '10px', color: '#60a5fa', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  Signal Origin: {selectedRedditPost.label || 'Global Network'}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <p style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    {selectedRedditPost.subreddit.toUpperCase()} SECTOR
+                  </p>
+                  <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+                    {selectedRedditPost.label || 'GLOBAL'}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedRedditPost(null)}
