@@ -29,16 +29,25 @@ export function getSubredditLocation(subreddit: string, title: string = '', id: 
     }
   }
 
-  // 2. Otherwise, use the post ID to generate a TRULY UNIQUE global coordinate
-  // This ensures posts are spread "All over the globe"
-  const seed = (id || cleanSub).split('').reduce((acc, char, i) => acc + char.charCodeAt(0) * (i + 1), 0);
+  // 2. Otherwise, use high-entropy hashing to ensure a TRULY RANDOM global spread
+  // This breaks the "linear spiral" pattern seen previously
+  let h = 0;
+  const str = id || cleanSub || 'global';
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(31, h) + str.charCodeAt(i) | 0;
+  }
   
-  // High-quality spherical distribution (Fibonacci Sphere-ish)
-  const phi = Math.acos(1 - 2 * ((seed * 0.618033) % 1));
-  const theta = 2 * Math.PI * ((seed * 0.381966) % 1);
+  // Scramble the hash further to ensure high entropy
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  h ^= (h >>> 16);
 
-  const lat = (phi * 180) / Math.PI - 90;
-  const lng = (theta * 180) / Math.PI - 180;
+  // Map to spherical coordinates with high spread
+  const u = (Math.abs(h) % 1000000) / 1000000;
+  const v = (Math.abs(Math.imul(h, 0x9e3779b1)) % 1000000) / 1000000;
+
+  const lat = (Math.acos(2 * u - 1) * 180) / Math.PI - 90;
+  const lng = (v * 360) - 180;
   
   return { 
     lat, 
