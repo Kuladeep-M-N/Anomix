@@ -237,7 +237,7 @@ const ObservatoriumGlobe: React.FC = () => {
       mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.current.setFromCamera(mouse.current, camera);
-      raycaster.current.params.Points.threshold = 3;
+      raycaster.current.params.Points.threshold = 6;
 
       // Intersect the entire scene recursively to ensure we hit nested spikes/rings
       const hits = raycaster.current.intersectObjects(scene.children, true);
@@ -276,7 +276,7 @@ const ObservatoriumGlobe: React.FC = () => {
       mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.current.setFromCamera(mouse.current, camera);
-      raycaster.current.params.Points.threshold = 3;
+      raycaster.current.params.Points.threshold = 6;
 
       const hits = raycaster.current.intersectObjects(scene.children, true);
       
@@ -652,9 +652,12 @@ const ObservatoriumGlobe: React.FC = () => {
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#8b5cf6', animation: 'pulseRing 2s infinite' }} />
                   <p style={{ fontSize: '9px', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#a78bfa', fontWeight: 700 }}>Social Intel Report</p>
                 </div>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white', letterSpacing: '-0.02em', lineHeight: 1.2, marginTop: '8px' }}>
-                  {selectedRedditPost.subreddit.toUpperCase()} Surge
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'white', letterSpacing: '-0.01em', lineHeight: 1.3, marginTop: '8px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {selectedRedditPost.title}
                 </h2>
+                <p style={{ fontSize: '10px', color: '#60a5fa', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Signal Origin: {selectedRedditPost.label || 'Global Network'}
+                </p>
               </div>
               <button
                 onClick={() => setSelectedRedditPost(null)}
@@ -687,10 +690,10 @@ const ObservatoriumGlobe: React.FC = () => {
                   <span style={{ fontSize: '10px', fontWeight: 800, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Intelligence Summary</span>
                </div>
                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, margin: 0 }}>
-                 AI detected a viral surge in <strong style={{color: '#c084fc'}}>r/{selectedRedditPost.subreddit}</strong> regarding <strong style={{color: 'white'}}>{selectedRedditPost.title}</strong>. 
-                 Conversational velocity is tracking at <span style={{color: '#a78bfa', fontWeight: 700}}>{(selectedRedditPost.engagement / 10).toFixed(1)} events/min</span>. 
-                 This trend currently represents a key anomaly in the {selectedRedditPost.subreddit} sector with high cross-platform potential.
-               </p>
+                  Intelligence indicates a significant surge in <strong style={{color: '#c084fc'}}>r/{selectedRedditPost.subreddit}</strong>. 
+                  The report <strong style={{color: 'white'}}>"{(selectedRedditPost.title || 'Live Update')}"</strong> is gaining rapid traction at <span style={{color: '#a78bfa', fontWeight: 700}}>{selectedRedditPost.label || 'a global hub'}</span>.
+                  Current engagement metrics suggest a viral velocity of <span style={{color: '#a78bfa', fontWeight: 700}}>{(selectedRedditPost.engagement / 10).toFixed(1)} events/min</span>. 
+                </p>
             </div>
 
             {/* Actions */}
