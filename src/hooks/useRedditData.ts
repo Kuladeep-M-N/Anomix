@@ -66,14 +66,15 @@ export function useRedditData(autoRefresh = true, refreshInterval = 300000) {
 
       if (result.error) {
         setError(result.error);
-      } else {
-        // Update module-level cache
-        cache.data = result;
-        cache.fetchedAt = Date.now();
-
-        setData(result);
-        setLastUpdate(result.lastUpdated);
       }
+      
+      // Update module-level cache
+      cache.data = result;
+      cache.fetchedAt = Date.now();
+
+      setData(result);
+      setLastUpdate(result.lastUpdated);
+
     } catch (err: any) {
       if (!mountedRef.current) return;
       setError(err.message || 'Unknown error');

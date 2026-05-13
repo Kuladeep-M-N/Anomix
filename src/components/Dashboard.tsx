@@ -207,7 +207,7 @@ function EventCard({ event, index, onFocus }: { event: LiveEvent; index: number;
 /**
  * TacticalHeader: Information dominance strip
  */
-function TacticalHeader({ lastUpdated, refresh, isRefreshing }: { lastUpdated: number; refresh: () => void; isRefreshing: boolean }) {
+function TacticalHeader({ lastUpdated, refresh, isRefreshing, error }: { lastUpdated: number; refresh: () => void; isRefreshing: boolean; error?: string }) {
   return (
     <div style={{ 
       display: 'flex', 
@@ -238,12 +238,12 @@ function TacticalHeader({ lastUpdated, refresh, isRefreshing }: { lastUpdated: n
             </span>
           </div>
           <div className="flex items-center gap-2">
-             <Shield size={12} className={redditData.error ? "text-yellow-500/50" : "text-green-500/50"} />
+             <Shield size={12} className={error ? "text-yellow-500/50" : "text-green-500/50"} />
              <span className="text-[11px] text-white/40 font-mono">
-               Anomaly engine: {redditData.error ? 'Bypass Active' : 'Active'}
+               Anomaly engine: {error ? 'Bypass Active' : 'Active'}
              </span>
           </div>
-          {redditData.error && (
+          {error && (
             <div className="flex items-center gap-2 px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded">
                <span className="text-[8px] font-bold text-yellow-500 uppercase tracking-tighter">
                  Signal Fallback Active
@@ -359,6 +359,7 @@ export function Dashboard() {
         lastUpdated={redditData.lastUpdated} 
         refresh={handleRefresh} 
         isRefreshing={isRefreshing} 
+        error={redditData.error}
       />
 
       <div style={{ 
