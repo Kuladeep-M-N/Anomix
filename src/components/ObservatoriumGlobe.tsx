@@ -94,10 +94,10 @@ const ObservatoriumGlobe: React.FC = () => {
     const points = redditData.posts.map((post, index) => {
       const loc = getSubredditLocation(post.subreddit);
       
-      // Add small jitter to avoid overlapping spikes from same subreddit
+      // Add larger jitter to avoid overlapping spikes from same subreddit
       // We use a deterministic jitter based on index so it doesn't jump every frame
-      const jitterLat = (Math.sin(index * 1.5) * 1.8);
-      const jitterLng = (Math.cos(index * 1.5) * 1.8);
+      const jitterLat = (Math.sin(index * 1.5) * 4.5);
+      const jitterLng = (Math.cos(index * 1.5) * 4.5);
       
       // Dynamic score: ensure viral posts stay above VIRAL_THRESHOLD (70)
       // but scale height with engagement
